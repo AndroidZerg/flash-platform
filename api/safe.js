@@ -14,6 +14,8 @@ router.post('/profiles', async (req, res) => {
     const { owner_session, type, name, date_of_birth, height, ethnicity,
             eye_color, guardian_name, guardian_phone } = req.body;
 
+    console.log('[FlashSafe] Profile create request body:', JSON.stringify(req.body));
+
     if (!owner_session || !type || !name) {
       return res.status(400).json({ error: 'owner_session, type, and name required' });
     }

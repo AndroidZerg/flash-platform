@@ -291,6 +291,17 @@ header h1 span { color: var(--red); }
 .settings-field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
 .about-text { color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; padding: 20px; }
 
+/* ---------- Setup Screen ---------- */
+.setup-screen {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center; padding: 32px 16px;
+}
+.setup-screen .shield-icon { font-size: 72px; margin-bottom: 16px; }
+.setup-screen h2 { font-size: 24px; margin-bottom: 8px; }
+.setup-screen .setup-sub { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 320px; margin-bottom: 24px; }
+.setup-form { width: 100%; max-width: 360px; text-align: left; }
+.setup-form .required-note { font-size: 12px; color: var(--red); margin-top: -8px; margin-bottom: 4px; }
+
 /* ---------- Back nav ---------- */
 .back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer; }
 .back-row span { font-size: 14px; color: var(--muted); }
@@ -347,6 +358,38 @@ header h1 span { color: var(--red); }
     </div>
   </header>
 
+  <!-- SETUP (first-time only) -->
+  <div id="screen-setup" class="screen">
+    <div class="setup-screen">
+      <div class="shield-icon">&#128737;&#65039;</div>
+      <h2>Welcome to FlashSafe</h2>
+      <p class="setup-sub">First, let's set up your emergency contact info. This appears on every flyer.</p>
+      <div class="setup-form">
+        <div class="form-group">
+          <label>Guardian / Contact Name *</label>
+          <input type="text" id="setupGuardianName" required placeholder="e.g. Tim Pham">
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" id="setupGuardianPhone" required placeholder="(555) 123-4567">
+        </div>
+        <div class="form-group">
+          <label>Relationship *</label>
+          <select id="setupRelationship" required>
+            <option value="">Select...</option>
+            <option value="Parent">Parent</option>
+            <option value="Guardian">Guardian</option>
+            <option value="Caregiver">Caregiver</option>
+            <option value="Owner">Owner</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <p class="required-note">* All fields required</p>
+        <button class="btn btn-accent btn-block" onclick="handleSetupComplete()">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HOME -->
   <div id="screen-home" class="screen">
     <button class="emergency-btn" onclick="navigate('emergency')">&#128680; EMERGENCY MODE</button>
@@ -397,13 +440,15 @@ header h1 span { color: var(--red); }
         <label>Eye Color</label>
         <input type="text" id="addEyeColor" placeholder="e.g. Brown">
       </div>
-      <div class="form-group" id="guardianGroup">
-        <label>Guardian Name</label>
-        <input type="text" id="addGuardianName" placeholder="Parent or caretaker name">
+      <div class="form-divider">Emergency Contact</div>
+
+      <div class="form-group">
+        <label>Contact Name *</label>
+        <input type="text" id="addGuardianName" required placeholder="Parent or caretaker name">
       </div>
-      <div class="form-group" id="guardianPhoneGroup">
-        <label>Guardian Phone</label>
-        <input type="tel" id="addGuardianPhone" placeholder="(555) 123-4567">
+      <div class="form-group">
+        <label>Contact Phone *</label>
+        <input type="tel" id="addGuardianPhone" required placeholder="(555) 123-4567">
       </div>
 
       <div class="form-divider">Photo</div>
@@ -468,16 +513,29 @@ header h1 span { color: var(--red); }
     <h2 style="margin-bottom:24px">Settings</h2>
 
     <div class="settings-section">
-      <h3>Default Guardian Info</h3>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:0 4px">These will auto-fill when creating new profiles.</p>
+      <h3>Emergency Contact</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:0 4px">This info appears on every flyer and auto-fills new profiles.</p>
       <div class="settings-field">
-        <label>Default Guardian Name</label>
-        <input type="text" class="settings-input" id="settingsGuardianName" placeholder="e.g. John Smith" onchange="saveDefaultGuardian()">
+        <label>Contact Name</label>
+        <input type="text" class="settings-input" id="settingsGuardianName" placeholder="e.g. John Smith">
       </div>
       <div class="settings-field">
-        <label>Default Emergency Phone</label>
-        <input type="tel" class="settings-input" id="settingsGuardianPhone" placeholder="(555) 123-4567" onchange="saveDefaultGuardian()">
+        <label>Phone Number</label>
+        <input type="tel" class="settings-input" id="settingsGuardianPhone" placeholder="(555) 123-4567">
       </div>
+      <div class="settings-field">
+        <label>Relationship</label>
+        <select class="settings-input" id="settingsRelationship">
+          <option value="">Select...</option>
+          <option value="Parent">Parent</option>
+          <option value="Guardian">Guardian</option>
+          <option value="Caregiver">Caregiver</option>
+          <option value="Owner">Owner</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <button class="btn btn-accent btn-block" style="margin-top:12px" onclick="saveDefaultGuardian()">Save</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px" onclick="updateAllProfileGuardians()">Update All Existing Profiles</button>
     </div>
 
     <div class="settings-section">
@@ -530,7 +588,6 @@ const TYPE_ICONS = {
 };
 
 const PET_TYPES = ['dog', 'cat'];
-const GUARDIAN_TYPES = ['child', 'teen', 'elder'];
 
 // ---- API helpers ----
 const API = '/api/safe';
@@ -597,7 +654,16 @@ async function handleRoute() {
     releaseWakeLock();
   }
 
+  // Check if setup is needed (no defaults + no profiles)
+  if (screen !== 'setup' && needsSetup()) {
+    showScreen('setup');
+    return;
+  }
+
   switch (screen) {
+    case 'setup':
+      showScreen('setup');
+      break;
     case 'home':
       await renderHome();
       break;
@@ -695,8 +761,6 @@ function renderAdd() {
 function updateFormLabels() {
   const type = document.getElementById('addType').value;
   const ethLabel = document.getElementById('addEthnicityLabel');
-  const guardianGroup = document.getElementById('guardianGroup');
-  const guardianPhoneGroup = document.getElementById('guardianPhoneGroup');
 
   if (PET_TYPES.includes(type)) {
     ethLabel.textContent = 'Breed';
@@ -704,14 +768,6 @@ function updateFormLabels() {
   } else {
     ethLabel.textContent = 'Ethnicity';
     document.getElementById('addEthnicity').placeholder = 'e.g. Hispanic, Asian, Caucasian';
-  }
-
-  if (GUARDIAN_TYPES.includes(type)) {
-    guardianGroup.classList.remove('hidden');
-    guardianPhoneGroup.classList.remove('hidden');
-  } else {
-    guardianGroup.classList.add('hidden');
-    guardianPhoneGroup.classList.add('hidden');
   }
 }
 
@@ -829,7 +885,6 @@ async function renderProfile(id) {
   currentProfileId = id;
 
   const isPet = PET_TYPES.includes(profile.type);
-  const needsGuardian = GUARDIAN_TYPES.includes(profile.type);
   const ethLabel = isPet ? 'Breed' : 'Ethnicity';
 
   const dobDisplay = profile.date_of_birth
@@ -869,10 +924,8 @@ async function renderProfile(id) {
       <div class="detail-field"><span class="label">Height</span><span class="value">${escapeHtml(profile.height || 'Not set')}</span></div>
       <div class="detail-field"><span class="label">${ethLabel}</span><span class="value">${escapeHtml(profile.ethnicity || 'Not set')}</span></div>
       <div class="detail-field"><span class="label">Eye Color</span><span class="value">${escapeHtml(profile.eye_color || 'Not set')}</span></div>
-      ${needsGuardian ? `
-        <div class="detail-field"><span class="label">Guardian</span><span class="value">${escapeHtml(profile.guardian_name || 'Not set')}</span></div>
-        <div class="detail-field"><span class="label">Guardian Phone</span><span class="value">${escapeHtml(profile.guardian_phone || 'Not set')}</span></div>
-      ` : ''}
+      <div class="detail-field"><span class="label">Emergency Contact</span><span class="value">${escapeHtml(profile.guardian_name || 'Not set')}</span></div>
+      <div class="detail-field"><span class="label">Contact Phone</span><span class="value">${escapeHtml(profile.guardian_phone || 'Not set')}</span></div>
     </div>
 
     <div class="flex-row gap-12">
@@ -909,16 +962,14 @@ async function renderProfile(id) {
           <label>Eye Color</label>
           <input type="text" id="editEyeColor" value="${escapeAttr(profile.eye_color || '')}">
         </div>
-        ${needsGuardian ? `
-          <div class="form-group">
-            <label>Guardian Name</label>
-            <input type="text" id="editGuardianName" value="${escapeAttr(profile.guardian_name || '')}">
-          </div>
-          <div class="form-group">
-            <label>Guardian Phone</label>
-            <input type="tel" id="editGuardianPhone" value="${escapeAttr(profile.guardian_phone || '')}">
-          </div>
-        ` : ''}
+        <div class="form-group">
+          <label>Emergency Contact *</label>
+          <input type="text" id="editGuardianName" value="${escapeAttr(profile.guardian_name || '')}" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Phone *</label>
+          <input type="tel" id="editGuardianPhone" value="${escapeAttr(profile.guardian_phone || '')}" required>
+        </div>
         <div class="flex-row gap-12">
           <button type="submit" class="btn btn-accent" style="flex:1">Save Changes</button>
           <button type="button" class="btn btn-muted" style="flex:1" onclick="document.getElementById('editModal').classList.add('hidden')">Cancel</button>
@@ -938,8 +989,6 @@ function startEditProfile(id) {
 
 async function handleEditProfile(e, id) {
   e.preventDefault();
-  const profile = profiles.find(p => p.id === id);
-  const needsGuardian = GUARDIAN_TYPES.includes(profile.type);
 
   const body = {
     name: document.getElementById('editName').value.trim(),
@@ -947,12 +996,9 @@ async function handleEditProfile(e, id) {
     height: document.getElementById('editHeight').value.trim() || null,
     ethnicity: document.getElementById('editEthnicity').value.trim() || null,
     eye_color: document.getElementById('editEyeColor').value.trim() || null,
+    guardian_name: document.getElementById('editGuardianName').value.trim() || null,
+    guardian_phone: document.getElementById('editGuardianPhone').value.trim() || null,
   };
-
-  if (needsGuardian) {
-    body.guardian_name = document.getElementById('editGuardianName').value.trim() || null;
-    body.guardian_phone = document.getElementById('editGuardianPhone').value.trim() || null;
-  }
 
   try {
     await api('/profiles/' + id, {
@@ -1235,24 +1281,26 @@ function buildScript(profile, desc, isPet) {
     const breed = desc.breed_traits || desc.breed || profile.ethnicity || '';
     const color = desc.color_markings || desc.color || '';
     const collar = desc.collar || '';
-    let s = `Lost ${type}, a ${breed ? breed : type} named ${name}.`;
+    let s = `My ${type} ${name} is missing.`;
+    if (breed) s += ` ${breed}.`;
     if (color) s += ` ${color}.`;
     if (collar) s += ` Wearing ${collar}.`;
     if (features) s += ` ${features}.`;
+    if (profile.guardian_name) s += ` If you see ${name}, please contact ${profile.guardian_name}${profile.guardian_phone ? ' at ' + profile.guardian_phone : ''}.`;
     return s;
   }
 
-  let s = `Missing ${type}`;
-  if (profile.type === 'child') s = `Missing child`;
-  else if (profile.type === 'teen') s = `Missing teenager`;
+  let s = `My ${type}`;
+  if (profile.type === 'child') s = `My child`;
+  else if (profile.type === 'teen') s = `My teenager`;
   else if (profile.type === 'elder') s = `Missing elderly person`;
 
-  s += `, named ${name}.`;
-  if (height) s += ` Approximately ${height} tall.`;
+  s += ` ${name} is missing.`;
+  if (height) s += ` ${height} tall.`;
   if (hair) s += ` ${hair}.`;
   if (clothing) s += ` Last seen wearing ${clothing}.`;
   if (features) s += ` ${features}.`;
-  if (profile.guardian_name) s += ` Contact ${profile.guardian_name}${profile.guardian_phone ? ' at ' + profile.guardian_phone : ''}.`;
+  if (profile.guardian_name) s += ` If you see ${name}, please contact ${profile.guardian_name}${profile.guardian_phone ? ' at ' + profile.guardian_phone : ''}.`;
 
   return s;
 }
@@ -1267,6 +1315,8 @@ function buildBullets(profile, desc, isPet) {
     if (desc.breed_traits || desc.breed || profile.ethnicity) items.push(['Breed', desc.breed_traits || desc.breed || profile.ethnicity]);
     if (desc.collar) items.push(['Collar', desc.collar]);
     if (desc.distinguishing_features) items.push(['Features', desc.distinguishing_features]);
+    if (profile.guardian_name) items.push(['Contact', profile.guardian_name]);
+    if (profile.guardian_phone) items.push(['Phone', profile.guardian_phone]);
   } else {
     if (desc.height || profile.height) items.push(['Height', desc.height || profile.height]);
     if (desc.hair) items.push(['Hair', desc.hair]);
@@ -1349,6 +1399,7 @@ async function shareFlyer(profileId, withPhoto) {
     if (desc.color_markings || desc.color) bulletItems.push(`Color: ${desc.color_markings || desc.color}`);
     if (desc.collar) bulletItems.push(`Collar: ${desc.collar}`);
     if (desc.distinguishing_features) bulletItems.push(`Features: ${desc.distinguishing_features}`);
+    if (profile.eye_color) bulletItems.push(`Eyes: ${profile.eye_color}`);
   } else {
     if (desc.height || profile.height) bulletItems.push(`Height: ${desc.height || profile.height}`);
     if (desc.hair) bulletItems.push(`Hair: ${desc.hair}`);
@@ -1373,14 +1424,48 @@ async function shareFlyer(profileId, withPhoto) {
     y += 4;
   }
 
-  // Guardian contact
+  // CONTACT section — prominent, always shown if available
   if (profile.guardian_name || profile.guardian_phone) {
-    y += 12;
+    y += 16;
+    // Red separator
     ctx.fillStyle = '#e63946';
+    ctx.fillRect(margin, y, W - margin * 2, 3);
+    y += 24;
+
+    // CONTACT label
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e63946';
+    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    if (profile.guardian_name) {
+      ctx.fillText(`CONTACT: ${profile.guardian_name}`, W / 2, y + 28);
+      y += 40;
+    }
+
+    // Phone number — large and red
+    if (profile.guardian_phone) {
+      ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText(`\u{1F4DE} ${profile.guardian_phone}`, W / 2, y + 36);
+      y += 50;
+    }
+
+    // Sub-text
+    ctx.fillStyle = '#333';
+    ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText('If seen, please call immediately', W / 2, y + 20);
+    y += 28;
+    ctx.fillText('or contact local authorities.', W / 2, y + 20);
+    y += 36;
+  }
+
+  // CALL 911 bar
+  if (y < H - 90) {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(margin, y, W - margin * 2, 50);
+    ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
-    const contactLine = `Contact: ${profile.guardian_name || ''} ${profile.guardian_phone || ''}`.trim();
-    ctx.fillText(contactLine, margin, y + 24);
-    y += 40;
+    ctx.textAlign = 'center';
+    ctx.fillText('CALL 911', W / 2, y + 34);
+    y += 64;
   }
 
   // Footer
@@ -1471,8 +1556,10 @@ function renderSettings() {
   // Load default guardian settings
   const savedGuardianName = localStorage.getItem('flashsafe_default_guardian_name') || '';
   const savedGuardianPhone = localStorage.getItem('flashsafe_default_guardian_phone') || '';
+  const savedRelationship = localStorage.getItem('flashsafe_default_guardian_relationship') || '';
   document.getElementById('settingsGuardianName').value = savedGuardianName;
   document.getElementById('settingsGuardianPhone').value = savedGuardianPhone;
+  document.getElementById('settingsRelationship').value = savedRelationship;
 
   showScreen('settings');
 }
@@ -1480,9 +1567,59 @@ function renderSettings() {
 function saveDefaultGuardian() {
   const name = document.getElementById('settingsGuardianName').value.trim();
   const phone = document.getElementById('settingsGuardianPhone').value.trim();
+  const relationship = document.getElementById('settingsRelationship').value;
   localStorage.setItem('flashsafe_default_guardian_name', name);
   localStorage.setItem('flashsafe_default_guardian_phone', phone);
-  toast('Guardian defaults saved');
+  localStorage.setItem('flashsafe_default_guardian_relationship', relationship);
+  toast('Emergency contact saved');
+}
+
+async function updateAllProfileGuardians() {
+  const name = document.getElementById('settingsGuardianName').value.trim();
+  const phone = document.getElementById('settingsGuardianPhone').value.trim();
+  if (!name || !phone) {
+    toast('Enter name and phone first');
+    return;
+  }
+  if (!confirm(`Update emergency contact on all ${profiles.length} profile(s) to ${name} / ${phone}?`)) return;
+
+  let updated = 0;
+  for (const p of profiles) {
+    try {
+      await api('/profiles/' + p.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, guardian_name: name, guardian_phone: phone })
+      });
+      updated++;
+    } catch (e) { console.error('Failed to update profile', p.id, e); }
+  }
+  toast(`Updated ${updated} profile(s)`);
+  await loadProfiles();
+}
+
+// ---- SETUP (first-time) ----
+function needsSetup() {
+  const hasDefaults = localStorage.getItem('flashsafe_default_guardian_name')
+    && localStorage.getItem('flashsafe_default_guardian_phone');
+  return !hasDefaults;
+}
+
+function handleSetupComplete() {
+  const name = document.getElementById('setupGuardianName').value.trim();
+  const phone = document.getElementById('setupGuardianPhone').value.trim();
+  const relationship = document.getElementById('setupRelationship').value;
+
+  if (!name || !phone || !relationship) {
+    toast('All fields are required');
+    return;
+  }
+
+  localStorage.setItem('flashsafe_default_guardian_name', name);
+  localStorage.setItem('flashsafe_default_guardian_phone', phone);
+  localStorage.setItem('flashsafe_default_guardian_relationship', relationship);
+  toast('Emergency contact saved');
+  navigate('add');
 }
 
 function saveReminderTime(time) {
@@ -1529,6 +1666,7 @@ async function handleDeleteAllData() {
     localStorage.removeItem('flashsafe_reminder_time');
     localStorage.removeItem('flashsafe_default_guardian_name');
     localStorage.removeItem('flashsafe_default_guardian_phone');
+    localStorage.removeItem('flashsafe_default_guardian_relationship');
     toast('All data deleted');
     navigate('home');
   } catch (err) {
