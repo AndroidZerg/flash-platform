@@ -10,6 +10,7 @@ node_modules/
 setup-supabase.js
 seed-events.js
 seed-vendors.js
+seed-cross-items.js
 
 # OS / editor
 .DS_Store
