@@ -9,8 +9,19 @@ module.exports = function(type) {
     other: 'Note all distinguishing features, colors, markings, and any identifying items.'
   };
 
-  return `Analyze this photo of a ${type} for a missing ${type} flyer. Be specific about colors, patterns, clothing. ${typeContext[type] || typeContext.other}
+  const isPet = ['dog', 'cat', 'other'].includes(type);
+
+  return `Analyze this photo of a ${type} for a missing ${type} flyer. ${typeContext[type] || typeContext.other}
+
+List the most visually distinctive identifying features first. Prioritize in this order:
+1. ${isPet ? 'Fur/coat' : 'Hair'} color and style
+2. Distinguishing marks (scars, birthmarks, unique markings${isPet ? ' like "white blaze on muzzle"' : ''})
+3. ${isPet ? 'Collar/harness/leash with colors' : 'Clothing with colors and patterns'}
+4. Height/size estimate
+5. Accessories (${isPet ? 'leash, tags, harness' : 'backpack, hat, glasses, jewelry'})
+
+These are what a bystander would notice first from a distance.
 
 Return ONLY valid JSON:
-{"clothing_top":"desc","clothing_bottom":"desc","shoes":"desc","accessories":"desc or null","estimated_height":"height","hair_description":"desc","eye_color":"color","distinguishing_features":"desc or null","summary":"Full paragraph description suitable for a missing person flyer"}`;
+{"clothing_top":"desc","clothing_bottom":"desc","shoes":"desc","accessories":"desc or null","estimated_height":"height","hair_description":"desc","eye_color":"color","distinguishing_features":"desc or null","summary":"Full paragraph description suitable for a missing ${type} flyer, leading with the most visually distinctive features"}`;
 };

@@ -12,10 +12,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #1a1a2e;
-  --card: #16213e;
+  --bg: #0a0a0f;
+  --card: #1a1a2e;
   --text: #ffffff;
   --muted: #8892b0;
+  --accent: #2ec47a;
+  --accent-dark: #25a065;
   --red: #e63946;
   --red-dark: #c1121f;
   --radius: 12px;
@@ -68,10 +70,14 @@ header h1 span { color: var(--red); }
   text-decoration: none;
 }
 .btn:active { transform: scale(0.97); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent-dark); }
 .btn-red { background: var(--red); color: #fff; }
 .btn-red:hover { background: var(--red-dark); }
-.btn-outline { background: transparent; border: 2px solid var(--red); color: var(--red); }
-.btn-outline:hover { background: rgba(230,57,70,0.1); }
+.btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+.btn-outline:hover { background: rgba(46,196,122,0.1); }
+.btn-outline-red { background: transparent; border: 2px solid var(--red); color: var(--red); }
+.btn-outline-red:hover { background: rgba(230,57,70,0.1); }
 .btn-muted { background: rgba(255,255,255,0.08); color: var(--muted); }
 .btn-muted:hover { background: rgba(255,255,255,0.14); }
 .btn-danger { background: transparent; border: 2px solid var(--red); color: var(--red); }
@@ -95,9 +101,72 @@ header h1 span { color: var(--red); }
   outline: none; transition: border-color 0.15s;
 }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  border-color: var(--red);
+  border-color: var(--accent);
 }
 .form-group select option { background: var(--card); color: var(--text); }
+
+/* ---------- Photo upload in add form ---------- */
+.photo-upload-area {
+  border: 2px dashed rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-bottom: 16px;
+}
+.photo-upload-area:hover {
+  border-color: var(--accent);
+  background: rgba(46,196,122,0.04);
+}
+.photo-upload-area.has-photo {
+  border-color: var(--accent);
+  padding: 8px;
+}
+.photo-upload-area .upload-icon { font-size: 36px; margin-bottom: 8px; }
+.photo-upload-area .upload-text { font-size: 14px; color: var(--muted); }
+.photo-upload-area .upload-hint { font-size: 12px; color: var(--muted); margin-top: 4px; opacity: 0.7; }
+.photo-upload-preview {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.photo-upload-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+}
+.photo-upload-actions button {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.photo-upload-actions button:hover { color: var(--text); background: rgba(255,255,255,0.14); }
+
+/* ---------- Form section divider ---------- */
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.form-divider::before, .form-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
 
 /* ---------- Profile card on home ---------- */
 .profile-card { display: flex; align-items: center; gap: 14px; }
@@ -142,7 +211,7 @@ header h1 span { color: var(--red); }
 }
 .spinner {
   width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.15);
-  border-top-color: var(--red); border-radius: 50%;
+  border-top-color: var(--accent); border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -212,6 +281,14 @@ header h1 span { color: var(--red); }
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 15px;
 }
+.settings-input {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 15px;
+  width: 100%; outline: none; transition: border-color 0.15s;
+}
+.settings-input:focus { border-color: var(--accent); }
+.settings-field { margin-bottom: 12px; }
+.settings-field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
 .about-text { color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; padding: 20px; }
 
 /* ---------- Back nav ---------- */
@@ -230,6 +307,21 @@ header h1 span { color: var(--red); }
 .detail-field .value { font-size: 14px; text-align: right; }
 
 .section-title { font-size: 15px; color: var(--muted); margin: 20px 0 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ---------- Creating profile overlay ---------- */
+.creating-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,10,15,0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 999;
+}
+.creating-overlay p { font-size: 15px; color: var(--muted); }
+.creating-step { font-size: 14px; color: var(--accent); font-weight: 500; }
 
 /* ---------- Misc ---------- */
 .gap-12 { gap: 12px; }
@@ -264,10 +356,10 @@ header h1 span { color: var(--red); }
       <h2>Welcome to FlashSafe</h2>
       <p>Add the people and pets you want to keep safe. Take regular snaps so you always have a current description ready.</p>
     </div>
-    <button class="btn btn-red btn-block mt-20" onclick="navigate('add')">+ Add Person / Pet</button>
+    <button class="btn btn-accent btn-block mt-20" onclick="navigate('add')">+ Add Person / Pet</button>
   </div>
 
-  <!-- ADD PROFILE -->
+  <!-- ADD PROFILE (single-page with photo upload) -->
   <div id="screen-add" class="screen">
     <div class="back-row" onclick="navigate('home')"><span>&#8592; Back</span></div>
     <h2 style="margin-bottom:20px">New Profile</h2>
@@ -313,7 +405,26 @@ header h1 span { color: var(--red); }
         <label>Guardian Phone</label>
         <input type="tel" id="addGuardianPhone" placeholder="(555) 123-4567">
       </div>
-      <button type="submit" class="btn btn-red btn-block" id="addSubmitBtn">Save Profile</button>
+
+      <div class="form-divider">Photo</div>
+
+      <input type="file" id="addPhotoInput" accept="image/*" capture="environment" onchange="handleAddPhotoSelected(event)" style="display:none">
+      <div id="addPhotoArea" class="photo-upload-area" onclick="document.getElementById('addPhotoInput').click()">
+        <div id="addPhotoPlaceholder">
+          <div class="upload-icon">&#128247;</div>
+          <div class="upload-text">Take a photo or choose from gallery</div>
+          <div class="upload-hint">AI will analyze the photo to generate a description</div>
+        </div>
+        <div id="addPhotoPreviewWrap" class="hidden">
+          <img id="addPhotoPreview" class="photo-upload-preview" alt="Preview">
+        </div>
+      </div>
+      <div id="addPhotoActions" class="photo-upload-actions hidden">
+        <button type="button" onclick="changeAddPhoto()">Change Photo</button>
+        <button type="button" onclick="removeAddPhoto()">Remove</button>
+      </div>
+
+      <button type="submit" class="btn btn-accent btn-block mt-12" id="addSubmitBtn">Create Profile</button>
     </form>
   </div>
 
@@ -327,11 +438,11 @@ header h1 span { color: var(--red); }
   <div id="screen-camera" class="screen">
     <div class="back-row" onclick="goBackFromCamera()"><span>&#8592; Back</span></div>
     <h2 style="margin-bottom:8px">Take a Snap</h2>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Capture what they look like right now — clothing, accessories, everything.</p>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Capture what they look like right now -- clothing, accessories, everything.</p>
     <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotoSelected(event)" style="display:none">
     <button class="btn btn-outline btn-block" onclick="document.getElementById('cameraInput').click()" id="selectPhotoBtn">&#128247; Select or Take Photo</button>
     <img id="cameraPreview" class="camera-preview hidden">
-    <button class="btn btn-red btn-block mt-12 hidden" id="analyzeBtn" onclick="handleAnalyze()">Analyze Photo</button>
+    <button class="btn btn-accent btn-block mt-12 hidden" id="analyzeBtn" onclick="handleAnalyze()">Analyze Photo</button>
     <div id="cameraLoading" class="loading-overlay hidden">
       <div class="spinner"></div>
       <p style="font-size:16px;font-weight:600">AI is analyzing...</p>
@@ -355,6 +466,20 @@ header h1 span { color: var(--red); }
   <div id="screen-settings" class="screen">
     <div class="back-row" onclick="navigate('home')"><span>&#8592; Back</span></div>
     <h2 style="margin-bottom:24px">Settings</h2>
+
+    <div class="settings-section">
+      <h3>Default Guardian Info</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:0 4px">These will auto-fill when creating new profiles.</p>
+      <div class="settings-field">
+        <label>Default Guardian Name</label>
+        <input type="text" class="settings-input" id="settingsGuardianName" placeholder="e.g. John Smith" onchange="saveDefaultGuardian()">
+      </div>
+      <div class="settings-field">
+        <label>Default Emergency Phone</label>
+        <input type="tel" class="settings-input" id="settingsGuardianPhone" placeholder="(555) 123-4567" onchange="saveDefaultGuardian()">
+      </div>
+    </div>
+
     <div class="settings-section">
       <h3>Reminders</h3>
       <div class="settings-row">
@@ -371,6 +496,12 @@ header h1 span { color: var(--red); }
       <p class="about-text">FlashSafe &mdash; Be prepared for emergencies.<br><br>Take regular photos so you always have an up-to-date description ready if someone goes missing.<br><br>Stay safe. Stay prepared.</p>
     </div>
   </div>
+</div>
+
+<!-- Creating profile overlay (shown during profile+snap creation) -->
+<div id="creatingOverlay" class="creating-overlay hidden">
+  <div class="spinner"></div>
+  <p id="creatingStep" class="creating-step">Creating profile...</p>
 </div>
 
 <script>
@@ -390,6 +521,7 @@ let snapsCache = {};          // profile_id -> [snaps]
 let currentProfileId = null;
 let currentSnapId = null;
 let currentPhotoFile = null;
+let addPhotoFile = null;      // photo file for add profile form
 let wakeLock = null;
 
 const TYPE_ICONS = {
@@ -541,6 +673,21 @@ async function renderHome() {
 // ---- ADD PROFILE ----
 function renderAdd() {
   document.getElementById('addForm').reset();
+  addPhotoFile = null;
+
+  // Reset photo upload area
+  document.getElementById('addPhotoPlaceholder').classList.remove('hidden');
+  document.getElementById('addPhotoPreviewWrap').classList.add('hidden');
+  document.getElementById('addPhotoActions').classList.add('hidden');
+  document.getElementById('addPhotoArea').classList.remove('has-photo');
+  document.getElementById('addPhotoInput').value = '';
+
+  // Auto-fill guardian fields from defaults
+  const defaultGuardianName = localStorage.getItem('flashsafe_default_guardian_name') || '';
+  const defaultGuardianPhone = localStorage.getItem('flashsafe_default_guardian_phone') || '';
+  document.getElementById('addGuardianName').value = defaultGuardianName;
+  document.getElementById('addGuardianPhone').value = defaultGuardianPhone;
+
   updateFormLabels();
   showScreen('add');
 }
@@ -568,11 +715,49 @@ function updateFormLabels() {
   }
 }
 
+// ---- Add Profile Photo Handling ----
+function handleAddPhotoSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  addPhotoFile = file;
+
+  const preview = document.getElementById('addPhotoPreview');
+  preview.src = URL.createObjectURL(file);
+
+  document.getElementById('addPhotoPlaceholder').classList.add('hidden');
+  document.getElementById('addPhotoPreviewWrap').classList.remove('hidden');
+  document.getElementById('addPhotoActions').classList.remove('hidden');
+  document.getElementById('addPhotoArea').classList.add('has-photo');
+
+  // Prevent clicking the area from opening file picker when preview is shown
+  document.getElementById('addPhotoArea').onclick = null;
+}
+
+function changeAddPhoto() {
+  document.getElementById('addPhotoInput').click();
+}
+
+function removeAddPhoto() {
+  addPhotoFile = null;
+  document.getElementById('addPhotoInput').value = '';
+  document.getElementById('addPhotoPlaceholder').classList.remove('hidden');
+  document.getElementById('addPhotoPreviewWrap').classList.add('hidden');
+  document.getElementById('addPhotoActions').classList.add('hidden');
+  document.getElementById('addPhotoArea').classList.remove('has-photo');
+
+  // Restore click handler
+  document.getElementById('addPhotoArea').onclick = function() {
+    document.getElementById('addPhotoInput').click();
+  };
+}
+
 async function handleAddProfile(e) {
   e.preventDefault();
   const btn = document.getElementById('addSubmitBtn');
   btn.disabled = true;
-  btn.textContent = 'Saving...';
+
+  const overlay = document.getElementById('creatingOverlay');
+  const stepEl = document.getElementById('creatingStep');
 
   const body = {
     owner_session: ownerSession,
@@ -587,19 +772,43 @@ async function handleAddProfile(e) {
   };
 
   try {
+    // Show overlay
+    stepEl.textContent = 'Creating profile...';
+    overlay.classList.remove('hidden');
+
+    // Step 1: Create the profile
     const profile = await api('/profiles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
+    // Step 2: If photo was selected, upload it as first snap
+    if (addPhotoFile) {
+      stepEl.textContent = 'Analyzing photo with AI...';
+
+      const formData = new FormData();
+      formData.append('photo', addPhotoFile);
+      formData.append('profile_id', profile.id);
+
+      try {
+        await api('/snaps', { method: 'POST', body: formData });
+      } catch (snapErr) {
+        console.error('Snap upload error:', snapErr);
+        toast('Profile created, but photo analysis failed');
+      }
+    }
+
+    overlay.classList.add('hidden');
+    addPhotoFile = null;
     toast('Profile created');
     navigate('profile', profile.id);
   } catch (err) {
+    overlay.classList.add('hidden');
     toast(err.message || 'Error creating profile');
     console.error('Profile create error:', err);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Save Profile';
   }
 }
 
@@ -671,7 +880,7 @@ async function renderProfile(id) {
       <button class="btn btn-muted" style="flex:1" onclick="handleDeleteProfile('${id}')">Delete</button>
     </div>
 
-    <button class="btn btn-red btn-block mt-20" onclick="navigate('camera','${id}')">&#128247; Take New Snap</button>
+    <button class="btn btn-accent btn-block mt-20" onclick="navigate('camera','${id}')">&#128247; Take New Snap</button>
 
     <div class="section-title">Snaps (${snaps.length})</div>
     <div class="card-grid">${snapsHtml}</div>
@@ -711,7 +920,7 @@ async function renderProfile(id) {
           </div>
         ` : ''}
         <div class="flex-row gap-12">
-          <button type="submit" class="btn btn-red" style="flex:1">Save Changes</button>
+          <button type="submit" class="btn btn-accent" style="flex:1">Save Changes</button>
           <button type="button" class="btn btn-muted" style="flex:1" onclick="document.getElementById('editModal').classList.add('hidden')">Cancel</button>
         </div>
       </form>
@@ -882,7 +1091,7 @@ async function renderProcessing(snapId) {
         ${summary ? `<div class="summary"><p>${escapeHtml(summary)}</p></div>` : ''}
       </div>
       <div class="flex-row gap-12 mt-20">
-        <button class="btn btn-red" style="flex:1" onclick="navigate('profile','${profile.id}')">Looks Good &mdash; Save</button>
+        <button class="btn btn-accent" style="flex:1" onclick="navigate('profile','${profile.id}')">Looks Good</button>
         <button class="btn btn-outline" style="flex:1" onclick="navigate('camera','${profile.id}')">Retake</button>
       </div>
     `;
@@ -1256,9 +1465,24 @@ function releaseWakeLock() {
 
 // ---- SETTINGS ----
 function renderSettings() {
-  const saved = localStorage.getItem('flashsafe_reminder_time') || '';
-  document.getElementById('reminderTime').value = saved;
+  const savedReminder = localStorage.getItem('flashsafe_reminder_time') || '';
+  document.getElementById('reminderTime').value = savedReminder;
+
+  // Load default guardian settings
+  const savedGuardianName = localStorage.getItem('flashsafe_default_guardian_name') || '';
+  const savedGuardianPhone = localStorage.getItem('flashsafe_default_guardian_phone') || '';
+  document.getElementById('settingsGuardianName').value = savedGuardianName;
+  document.getElementById('settingsGuardianPhone').value = savedGuardianPhone;
+
   showScreen('settings');
+}
+
+function saveDefaultGuardian() {
+  const name = document.getElementById('settingsGuardianName').value.trim();
+  const phone = document.getElementById('settingsGuardianPhone').value.trim();
+  localStorage.setItem('flashsafe_default_guardian_name', name);
+  localStorage.setItem('flashsafe_default_guardian_phone', phone);
+  toast('Guardian defaults saved');
 }
 
 function saveReminderTime(time) {
@@ -1303,6 +1527,8 @@ async function handleDeleteAllData() {
     profiles = [];
     snapsCache = {};
     localStorage.removeItem('flashsafe_reminder_time');
+    localStorage.removeItem('flashsafe_default_guardian_name');
+    localStorage.removeItem('flashsafe_default_guardian_phone');
     toast('All data deleted');
     navigate('home');
   } catch (err) {

@@ -34,11 +34,11 @@ async function stripeWebhookHandler(req, res) {
         })
         .eq('id', vendor_id);
 
-      // List all approved items
+      // List all draft/approved items
       await supabase.from('items')
         .update({ status: 'listed', listed_at: new Date().toISOString() })
         .eq('vendor_id', vendor_id)
-        .eq('status', 'approved');
+        .in('status', ['draft', 'approved']);
 
       // Audit log
       await supabase.from('audit_log').insert({

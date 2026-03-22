@@ -6,6 +6,7 @@ const { uploadPhoto, generateThumbnail } = require('../core/storage');
 const { analyzeImage } = require('../core/anthropic');
 const productPrompt = require('../core/prompts/product');
 const foodPrompt = require('../core/prompts/food');
+const menuboardPrompt = require('../core/prompts/menuboard');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -119,7 +120,8 @@ router.put('/items/:id', async (req, res) => {
       }
     }
 
-    const { title, description, category, condition, price_cents, price_note, vendor_notes, status } = req.body;
+    const { title, description, category, condition, price_cents, price_note, vendor_notes, status,
+            optional_proteins, spice_options } = req.body;
     const updates = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
@@ -128,6 +130,8 @@ router.put('/items/:id', async (req, res) => {
     if (price_cents !== undefined) updates.price_cents = price_cents;
     if (price_note !== undefined) updates.price_note = price_note;
     if (vendor_notes !== undefined) updates.vendor_notes = vendor_notes;
+    if (optional_proteins !== undefined) updates.optional_proteins = optional_proteins;
+    if (spice_options !== undefined) updates.spice_options = spice_options;
     if (status !== undefined) {
       updates.status = status;
       if (status === 'listed') updates.listed_at = new Date().toISOString();
@@ -211,6 +215,22 @@ router.delete('/items/:id', async (req, res) => {
 
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/items/analyze-menuboard — Extract prices from menu board photo
+router.post('/items/analyze-menuboard', upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'photo required' });
+
+    const base64 = req.file.buffer.toString('base64');
+    const mediaType = req.file.mimetype || 'image/jpeg';
+    const result = await analyzeImage(base64, mediaType, menuboardPrompt);
+
+    // result should be an array of {name, price_cents}
+    res.json({ items: Array.isArray(result) ? result : [] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

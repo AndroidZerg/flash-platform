@@ -9,7 +9,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 // POST /api/vendors — Join event as vendor
 router.post('/vendors', async (req, res) => {
   try {
-    const { event_id, display_name, booth_location, contact_name, contact_phone, contact_email } = req.body;
+    const { event_id, display_name, booth_location, contact_name, contact_phone,
+            contact_email, vendor_type, vendor_email } = req.body;
 
     if (!event_id || !display_name) {
       return res.status(400).json({ error: 'event_id and display_name are required' });
@@ -26,7 +27,9 @@ router.post('/vendors', async (req, res) => {
 
     const { data, error } = await supabase.from('vendors').insert({
       event_id, display_name, booth_location,
-      contact_name, contact_phone, contact_email
+      contact_name, contact_phone, contact_email,
+      vendor_email: vendor_email || contact_email || null,
+      type: vendor_type || 'product'
     }).select().single();
 
     if (error) return res.status(400).json({ error: error.message });
@@ -61,6 +64,84 @@ router.get('/vendors/me', async (req, res) => {
   }
 });
 
+// GET /api/vendors/lookup — Find previous vendor by email
+router.get('/vendors/lookup', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ error: 'email required' });
+
+    const { data: vendors } = await supabase.from('vendors')
+      .select('*, items(id, title, photo_url, thumbnail_url, ai_description, category, price_cents, type)')
+      .eq('vendor_email', email)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (!vendors || vendors.length === 0) {
+      return res.json({ found: false, vendors: [] });
+    }
+
+    res.json({ found: true, vendors });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/import-items — Import items from a previous vendor
+router.post('/vendors/:id/import-items', async (req, res) => {
+  try {
+    const session = req.query.session;
+    if (!session) return res.status(401).json({ error: 'session token required' });
+
+    const { data: vendor } = await supabase.from('vendors')
+      .select('session_token, event_id, type')
+      .eq('id', req.params.id)
+      .single();
+
+    if (!vendor || vendor.session_token !== session) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const { source_vendor_id } = req.body;
+    if (!source_vendor_id) return res.status(400).json({ error: 'source_vendor_id required' });
+
+    // Get items from source vendor
+    const { data: sourceItems } = await supabase.from('items')
+      .select('*')
+      .eq('vendor_id', source_vendor_id)
+      .in('status', ['listed', 'sold', 'draft']);
+
+    if (!sourceItems || sourceItems.length === 0) {
+      return res.json({ imported: 0 });
+    }
+
+    // Copy items as drafts for current vendor/event
+    const newItems = sourceItems.map(item => ({
+      event_id: vendor.event_id,
+      vendor_id: req.params.id,
+      type: item.type,
+      photo_url: item.photo_url,
+      thumbnail_url: item.thumbnail_url,
+      ai_description: item.ai_description,
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      condition: item.condition,
+      price_cents: item.price_cents,
+      price_note: item.price_note,
+      search_text: item.search_text,
+      optional_proteins: item.optional_proteins,
+      spice_options: item.spice_options,
+      status: 'draft'
+    }));
+
+    const { data, error } = await supabase.from('items').insert(newItems).select();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ imported: data.length, items: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/vendors/:id — Update vendor
 router.put('/vendors/:id', async (req, res) => {
   try {
@@ -77,9 +158,17 @@ router.put('/vendors/:id', async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const { display_name, booth_location, contact_name, contact_phone, contact_email } = req.body;
+    const { display_name, booth_location, contact_name, contact_phone, contact_email, vendor_email } = req.body;
+    const updates = {};
+    if (display_name !== undefined) updates.display_name = display_name;
+    if (booth_location !== undefined) updates.booth_location = booth_location;
+    if (contact_name !== undefined) updates.contact_name = contact_name;
+    if (contact_phone !== undefined) updates.contact_phone = contact_phone;
+    if (contact_email !== undefined) updates.contact_email = contact_email;
+    if (vendor_email !== undefined) updates.vendor_email = vendor_email;
+
     const { data, error } = await supabase.from('vendors')
-      .update({ display_name, booth_location, contact_name, contact_phone, contact_email })
+      .update(updates)
       .eq('id', req.params.id)
       .select()
       .single();

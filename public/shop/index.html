@@ -3,31 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#ff6b2b">
+<meta name="theme-color" content="#0a0a0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FlashShop</title>
 <link rel="manifest" href="/shop/manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #1a1a2e;
-  --card: #16213e;
+  --bg: #0a0a0f;
+  --card: #1a1a2e;
+  --card-hover: #222240;
   --text: #ffffff;
   --muted: #8892b0;
-  --accent: #ff6b2b;
-  --accent-hover: #e55a1f;
+  --accent: #2ec47a;
+  --accent-hover: #27a968;
+  --red: #e94560;
+  --red-hover: #d13a53;
   --radius-card: 12px;
   --radius-btn: 8px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 
 html, body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -80,9 +80,11 @@ p { line-height: 1.5; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-secondary { background: var(--card); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
-.btn-secondary:hover:not(:disabled) { background: #1e2d4d; }
+.btn-secondary:hover:not(:disabled) { background: var(--card-hover); }
 .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
-.btn-outline:hover:not(:disabled) { background: rgba(255,107,43,0.1); }
+.btn-outline:hover:not(:disabled) { background: rgba(46,196,122,0.1); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: var(--red-hover); }
 .btn-small { padding: 8px 16px; font-size: 0.85rem; width: auto; }
 .btn-row { display: flex; gap: 10px; }
 .btn-row .btn { flex: 1; }
@@ -90,7 +92,7 @@ p { line-height: 1.5; }
 /* --- Inputs --- */
 .input-group { margin-bottom: 16px; }
 .input-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-input[type="text"], input[type="number"], input[type="datetime-local"],
+input[type="text"], input[type="email"], input[type="number"], input[type="datetime-local"],
 textarea, select {
   width: 100%;
   padding: 12px 14px;
@@ -106,6 +108,36 @@ textarea, select {
 input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 textarea { resize: vertical; min-height: 80px; }
 select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' stroke-width='2' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* --- Toggle Switch --- */
+.toggle-group {
+  display: flex;
+  background: var(--card);
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.toggle-option {
+  flex: 1;
+  padding: 12px 16px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s, color 0.2s;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+.toggle-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+.toggle-option:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+}
 
 /* --- Cards --- */
 .card {
@@ -128,14 +160,46 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 .badge-draft { background: rgba(136,146,176,0.25); color: #8892b0; }
 .badge-approved { background: rgba(59,130,246,0.2); color: #60a5fa; }
-.badge-listed { background: rgba(34,197,94,0.2); color: #4ade80; }
-.badge-sold { background: rgba(239,68,68,0.2); color: #f87171; }
+.badge-listed { background: rgba(46,196,122,0.2); color: #4ade80; }
+.badge-sold { background: rgba(233,69,96,0.2); color: #f87171; }
+.badge-removed { background: rgba(136,146,176,0.15); color: #666; }
+
+/* --- Dietary pills --- */
+.diet-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+.diet-vegetarian { background: rgba(46,196,122,0.2); color: #4ade80; }
+.diet-vegan { background: rgba(34,197,94,0.25); color: #22c55e; }
+.diet-gluten-free { background: rgba(234,179,8,0.2); color: #fbbf24; }
+.diet-dairy-free { background: rgba(96,165,250,0.2); color: #60a5fa; }
+.diet-nut-free { background: rgba(192,132,252,0.2); color: #c084fc; }
+
+/* --- Spice indicators --- */
+.spice-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8rem;
+}
+.spice-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+.spice-dot.active { background: var(--red); }
 
 /* --- Spinner --- */
 .spinner-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26,26,46,0.85);
+  background: rgba(10,10,15,0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -163,15 +227,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   color: var(--text);
   padding: 12px 24px;
   border-radius: var(--radius-btn);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   font-size: 0.9rem;
   z-index: 1100;
   animation: toastIn 0.3s ease;
   max-width: 90%;
   text-align: center;
 }
-.toast.error { border-left: 4px solid #f87171; }
-.toast.success { border-left: 4px solid #4ade80; }
+.toast.error { border-left: 4px solid var(--red); }
+.toast.success { border-left: 4px solid var(--accent); }
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
 /* --- Screen transitions --- */
@@ -208,11 +272,44 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .header .back-btn:hover { color: var(--text); }
 .header h2 { margin-bottom: 0; }
 
+/* --- Tab bar --- */
+.tab-bar {
+  display: flex;
+  background: var(--card);
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s, color 0.2s;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.tab-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+}
+
 /* --- Item grid --- */
 .item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+@media (min-width: 600px) {
+  .item-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .item-card {
   background: var(--card);
@@ -227,7 +324,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  background: #0f1629;
+  background: #0f0f1a;
 }
 .item-card .item-info {
   padding: 10px 12px;
@@ -253,6 +350,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.item-card .item-diets {
+  margin-top: 4px;
+}
 
 /* --- Vendor item list --- */
 .vendor-item {
@@ -272,7 +372,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   height: 64px;
   border-radius: 8px;
   object-fit: cover;
-  background: #0f1629;
+  background: #0f0f1a;
   flex-shrink: 0;
 }
 .vendor-item-info { flex: 1; min-width: 0; }
@@ -309,89 +409,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 .status-preview { background: rgba(234,179,8,0.15); color: #fbbf24; }
 .status-preview .dot { background: #fbbf24; }
-.status-live { background: rgba(34,197,94,0.15); color: #4ade80; }
+.status-live { background: rgba(46,196,122,0.15); color: #4ade80; }
 .status-live .dot { background: #4ade80; }
-
-/* --- Photo preview --- */
-.photo-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  background: var(--card);
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.photo-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.photo-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted);
-  padding: 40px;
-  text-align: center;
-  cursor: pointer;
-  border: 2px dashed rgba(255,255,255,0.1);
-  border-radius: var(--radius-card);
-  width: 100%;
-  aspect-ratio: 1;
-  justify-content: center;
-}
-.photo-placeholder:hover { border-color: var(--accent); }
-.photo-placeholder .camera-icon { font-size: 3rem; }
-
-/* --- Item detail --- */
-.detail-photo {
-  width: 100%;
-  aspect-ratio: 4/3;
-  object-fit: cover;
-  border-radius: var(--radius-card);
-  background: #0f1629;
-  margin-bottom: 16px;
-}
-.detail-price {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-.detail-note {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-left: 8px;
-}
-
-/* --- Event info card --- */
-.event-card {
-  background: var(--card);
-  border-radius: var(--radius-card);
-  padding: 20px;
-  margin: 16px 0;
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-.event-card h2 { color: var(--accent); }
-.event-card .event-dates { color: var(--muted); font-size: 0.85rem; margin: 8px 0; }
-
-/* --- Join code display --- */
-.join-code-display {
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: 6px;
-  color: var(--accent);
-  text-align: center;
-  padding: 20px;
-  background: var(--card);
-  border-radius: var(--radius-card);
-  margin: 16px 0;
-}
 
 /* --- Search bar --- */
 .search-bar {
@@ -400,36 +419,124 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   margin-bottom: 16px;
 }
 .search-bar input { flex: 1; }
-.filter-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.filter-row select { flex: 1; font-size: 0.85rem; padding: 8px 10px; }
-
-/* --- Banner --- */
-.banner {
-  background: rgba(255,107,43,0.1);
-  border: 1px solid rgba(255,107,43,0.3);
+.search-bar .filter-btn {
+  width: 48px;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-btn);
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 0.85rem;
-  color: var(--accent);
-  text-align: center;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
 }
+.search-bar .filter-btn:hover { background: var(--card-hover); color: var(--text); }
 
-/* --- Empty state --- */
-.empty-state {
-  text-align: center;
-  padding: 48px 20px;
+/* --- Filter modal --- */
+.filter-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,15,0.8);
+  z-index: 900;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeInBg 0.2s ease;
+}
+@keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+.filter-modal {
+  background: var(--card);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px 20px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.filter-modal h3 { margin-bottom: 16px; }
+.filter-section { margin-bottom: 20px; }
+.filter-section-title { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
   color: var(--muted);
 }
-.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.checkbox-pill.selected {
+  background: rgba(46,196,122,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.checkbox-pill:hover { background: rgba(255,255,255,0.08); }
 
-/* --- QR --- */
-.qr-container { text-align: center; margin: 16px 0; }
-.qr-container img { border-radius: 12px; background: #fff; padding: 12px; }
+/* --- Event Discovery Cards --- */
+.event-discover-card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.event-discover-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.event-cover {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+.event-cover-placeholder {
+  width: 100%;
+  height: 100px;
+  background: linear-gradient(135deg, #1a2a3e, #2a1a3e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.event-card-body { padding: 14px 16px; }
+.event-card-body .ed-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+.event-card-body .ed-datetime { font-size: 0.85rem; color: var(--accent); margin-bottom: 4px; }
+.event-card-body .ed-location { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+.event-card-body .ed-meta { font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; }
+.event-card-body .ed-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.event-card-body .ed-distance { color: var(--accent); font-weight: 600; }
+
+/* --- Event detail banner --- */
+.event-banner {
+  width: calc(100% + 32px);
+  margin: -16px -16px 16px -16px;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.event-banner-placeholder {
+  width: calc(100% + 32px);
+  margin: -16px -16px 16px -16px;
+  height: 160px;
+  background: linear-gradient(135deg, #1a2a3e, #2a1a3e, #1e2e4e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
 
 /* --- Stats row --- */
 .stats-row {
@@ -448,45 +555,41 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .stat-box .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
 .stat-box .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 
-/* --- Spacer --- */
-.spacer { height: 16px; }
-.spacer-lg { height: 24px; }
-
-/* --- Link --- */
-.link { color: var(--accent); text-decoration: none; cursor: pointer; font-weight: 500; }
-.link:hover { text-decoration: underline; }
-
-/* --- Divider --- */
-.divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; }
-
-/* --- Event Discovery Cards --- */
-.event-discover-card {
-  background: var(--card);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+/* --- Big browse buttons --- */
+.browse-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.event-discover-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-.event-discover-card .ed-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
-.event-discover-card .ed-meta { font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-.event-discover-card .ed-meta span { display: inline-flex; align-items: center; gap: 4px; }
-.event-discover-card .ed-distance { color: var(--accent); font-weight: 600; }
-.event-discover-card .ed-location { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
-
-.code-toggle {
+.browse-btn-big {
+  flex: 1;
+  background: var(--card);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-card);
+  padding: 24px 16px;
   text-align: center;
   cursor: pointer;
-  color: var(--muted);
-  font-size: 0.85rem;
-  padding: 12px;
-  user-select: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: var(--text);
 }
-.code-toggle:hover { color: var(--text); }
-.code-toggle-content { display: none; margin-top: 8px; }
-.code-toggle-content.open { display: block; }
+.browse-btn-big:hover { border-color: var(--accent); background: rgba(46,196,122,0.05); }
+.browse-btn-big .browse-icon { font-size: 2rem; margin-bottom: 8px; }
+.browse-btn-big .browse-label { font-size: 1rem; font-weight: 600; }
+
+/* --- Upload zone --- */
+.upload-zone {
+  border: 2px dashed rgba(255,255,255,0.15);
+  border-radius: var(--radius-card);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+.upload-zone:hover { border-color: var(--accent); background: rgba(46,196,122,0.03); }
+.upload-zone .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.upload-zone p { color: var(--muted); font-size: 0.9rem; }
 
 /* --- Multi-image upload grid --- */
 .multi-thumb-grid {
@@ -547,50 +650,146 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   margin-top: 8px;
 }
 
-/* --- Vendor banner/logo --- */
-.vendor-banner {
-  width: 100%;
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-.vendor-banner img {
-  width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-  display: block;
-}
-.vendor-banner-placeholder {
-  background: linear-gradient(135deg, var(--accent), #e55a1f);
-  padding: 32px 20px;
-  text-align: center;
-  border-radius: var(--radius-card);
-  margin-bottom: 16px;
-}
-.vendor-banner-placeholder h1 {
-  color: #fff;
-  font-size: 1.75rem;
-  margin-bottom: 4px;
-}
-.vendor-banner-placeholder p {
-  color: rgba(255,255,255,0.8);
-  font-size: 0.9rem;
-}
-.upload-logo-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 0.8rem;
-  background: rgba(255,255,255,0.1);
-  border: 1px dashed rgba(255,255,255,0.2);
+/* --- Edit screen compact photo --- */
+.edit-photo-small {
+  width: 120px;
+  height: 120px;
   border-radius: var(--radius-btn);
-  color: var(--muted);
-  cursor: pointer;
-  font-family: inherit;
+  object-fit: cover;
+  background: #0f0f1a;
   margin-bottom: 16px;
 }
-.upload-logo-btn:hover { background: rgba(255,255,255,0.15); color: var(--text); }
+
+/* --- Collapsible --- */
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.collapsible-header:hover { color: var(--text); }
+.collapsible-header .arrow { transition: transform 0.2s; font-size: 0.8rem; }
+.collapsible-header.open .arrow { transform: rotate(180deg); }
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.collapsible-content.open {
+  max-height: 600px;
+}
+
+/* --- Checkbox row --- */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.check-row.checked { color: var(--text); }
+
+/* --- Radio row --- */
+.radio-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.radio-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.radio-pill.active {
+  background: rgba(233,69,96,0.15);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* --- Edit bottom nav --- */
+.edit-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: #12121f;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  gap: 0;
+  padding: 8px 12px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 50;
+}
+.edit-bottom-nav .nav-btn {
+  flex: 1;
+  padding: 10px 4px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-btn);
+  transition: background 0.2s, color 0.2s;
+  text-align: center;
+}
+.edit-bottom-nav .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.edit-bottom-nav .nav-btn.nav-save { color: var(--accent); }
+.edit-bottom-nav .nav-btn.nav-hide { color: var(--red); }
+.edit-bottom-nav .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* --- Welcome back banner --- */
+.welcome-back {
+  background: rgba(46,196,122,0.1);
+  border: 1px solid rgba(46,196,122,0.3);
+  border-radius: var(--radius-btn);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.welcome-back h3 { color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.welcome-back p { color: var(--muted); font-size: 0.85rem; }
+
+/* --- Price input --- */
+.price-input-wrap {
+  position: relative;
+}
+.price-input-wrap .price-prefix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none;
+}
+.price-input-wrap input {
+  padding-left: 30px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* --- Vendor logo small --- */
 .vendor-logo-small {
   width: 48px;
   height: 48px;
@@ -599,6 +798,113 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   margin-right: 12px;
   vertical-align: middle;
 }
+
+/* --- Detail photo --- */
+.detail-photo {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  background: #0f0f1a;
+  margin-bottom: 16px;
+}
+.detail-price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* --- Spacer --- */
+.spacer { height: 16px; }
+.spacer-lg { height: 24px; }
+
+/* --- Link --- */
+.link { color: var(--accent); text-decoration: none; cursor: pointer; font-weight: 500; }
+.link:hover { text-decoration: underline; }
+
+/* --- Divider --- */
+.divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; }
+
+/* --- Empty state --- */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+/* --- Banner --- */
+.banner {
+  background: rgba(46,196,122,0.1);
+  border: 1px solid rgba(46,196,122,0.3);
+  border-radius: var(--radius-btn);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-align: center;
+}
+
+/* --- Vendor info card in item detail --- */
+.vendor-info-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  margin-bottom: 16px;
+}
+.vendor-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.vendor-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+/* --- Go Live button prominent --- */
+.go-live-btn {
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 18px 24px;
+  border: none;
+  border-radius: var(--radius-btn);
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+.go-live-btn:hover { background: var(--accent-hover); }
+.go-live-btn:active { transform: scale(0.97); }
+
+/* --- code-toggle (for event code entry on home) --- */
+.code-toggle {
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 12px;
+  user-select: none;
+}
+.code-toggle:hover { color: var(--text); }
+.code-toggle-content { display: none; margin-top: 8px; }
+.code-toggle-content.open { display: block; }
 </style>
 </head>
 <body>
@@ -606,14 +912,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 <script>
 // ============================================================
-// FlashShop SPA — All JS inline
+// FlashShop + FlashMenu SPA — Complete Rewrite
 // ============================================================
 
 (function() {
   'use strict';
 
   // ---------- CONFIG ----------
-  const API = '';  // same-origin
+  const API = '';
 
   // ---------- STATE ----------
   const state = {
@@ -622,14 +928,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     items: [],
     browseItems: [],
     currentItem: null,
-    loading: false,
-    loadingText: '',
+    userLat: null,
+    userLng: null,
+    activeTab: 'shop',
+    filterCategories: [],
+    selectedCategories: [],
+    filterSort: 'newest',
   };
 
   // ---------- STORAGE ----------
   function save(k, v) { try { localStorage.setItem('fs_' + k, JSON.stringify(v)); } catch(e){} }
   function load(k) { try { return JSON.parse(localStorage.getItem('fs_' + k)); } catch(e){ return null; } }
-  function clearAll() { ['session_token','vendor_id','event_id','vendor','event'].forEach(k => localStorage.removeItem('fs_' + k)); }
 
   function saveSession(vendor, event) {
     if (vendor) {
@@ -659,11 +968,38 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   function $$(sel, parent) { return Array.from((parent || document).querySelectorAll(sel)); }
   function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   function cents(c) { if (c == null || c === 0) return 'Free'; return '$' + (c / 100).toFixed(2); }
-  function formatDate(iso) { if (!iso) return ''; try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch(e){ return iso; } }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+        ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+    } catch(e) { return iso; }
+  }
+
+  function formatDateRange(startIso, endIso) {
+    if (!startIso) return '';
+    try {
+      const s = new Date(startIso);
+      const sDate = s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const sTime = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(':00', '');
+      if (!endIso) return sDate + ', ' + sTime;
+      const e = new Date(endIso);
+      const eDate = e.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const eTime = e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(':00', '');
+      if (sDate === eDate) {
+        return sDate + ', ' + sTime + ' - ' + eTime;
+      }
+      return sDate + ', ' + sTime + ' - ' + eDate + ', ' + eTime;
+    } catch(e) { return formatDate(startIso); }
+  }
+
   function badgeClass(status) {
-    const m = { draft: 'badge-draft', approved: 'badge-approved', listed: 'badge-listed', sold: 'badge-sold' };
+    const m = { draft: 'badge-draft', approved: 'badge-approved', listed: 'badge-listed', sold: 'badge-sold', removed: 'badge-removed' };
     return m[status] || 'badge-draft';
   }
+
   function photoUrl(item) {
     if (!item) return '';
     if (item.photo_url) return item.photo_url;
@@ -671,14 +1007,26 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     return '';
   }
 
+  function placeholderImg() {
+    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3Crect fill='%231a1a2e' width='1' height='1'/%3E%3C/svg%3E";
+  }
+
   function haversineDistance(lat1, lng1, lat2, lng2) {
-    const R = 3959; // Earth radius in miles
+    const R = 3959;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function formatDistance(miles) {
+    if (miles == null) return '';
+    if (miles < 0.189394) {
+      return Math.round(miles * 5280) + ' ft';
+    }
+    return miles.toFixed(1) + ' mi';
   }
 
   // ---------- TOAST ----------
@@ -712,7 +1060,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       opts.headers = { 'Content-Type': 'application/json' };
       opts.body = JSON.stringify(body);
     } else if (body && isForm) {
-      opts.body = body; // FormData
+      opts.body = body;
     }
     const res = await fetch(API + path, opts);
     if (!res.ok) {
@@ -720,7 +1068,63 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       try { const j = await res.json(); msg = j.detail || j.message || msg; } catch(e){}
       throw new Error(msg);
     }
-    return res.json();
+    if (res.status === 204) return {};
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return res.json();
+    return {};
+  }
+
+  // ---------- GEOLOCATION ----------
+  function requestGeolocation() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.userLat = pos.coords.latitude;
+          state.userLng = pos.coords.longitude;
+          resolve(pos);
+        },
+        () => resolve(null),
+        { timeout: 5000, maximumAge: 300000 }
+      );
+    });
+  }
+
+  // ---------- DIETARY HELPERS ----------
+  function parseDietaryTags(item) {
+    const tags = [];
+    if (!item) return tags;
+    const desc = (item.description || '').toLowerCase();
+    const opts = item.optional_proteins || '';
+    if (item.dietary_vegetarian || desc.includes('vegetarian')) tags.push('Vegetarian');
+    if (item.dietary_vegan || desc.includes('vegan')) tags.push('Vegan');
+    if (item.dietary_gluten_free || desc.includes('gluten-free') || desc.includes('gluten free')) tags.push('Gluten-Free');
+    if (item.dietary_dairy_free || desc.includes('dairy-free') || desc.includes('dairy free')) tags.push('Dairy-Free');
+    if (item.dietary_nut_free || desc.includes('nut-free') || desc.includes('nut free')) tags.push('Nut-Free');
+    return tags;
+  }
+
+  function dietaryPillsHtml(item) {
+    const tags = parseDietaryTags(item);
+    if (!tags.length) return '';
+    return tags.map(t => {
+      const cls = 'diet-' + t.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-');
+      return '<span class="diet-pill ' + cls + '">' + esc(t) + '</span>';
+    }).join('');
+  }
+
+  function spiceLevelHtml(item) {
+    if (!item || !item.spice_level || item.spice_level === 'none') return '';
+    const levels = { mild: 1, medium: 2, hot: 3 };
+    const n = levels[item.spice_level] || 0;
+    if (n === 0) return '';
+    let html = '<span class="spice-indicator">';
+    for (let i = 0; i < 3; i++) {
+      html += '<span class="spice-dot' + (i < n ? ' active' : '') + '"></span>';
+    }
+    const labels = { mild: 'Mild', medium: 'Medium', hot: 'Hot' };
+    html += ' <span style="margin-left:4px;color:' + (n >= 3 ? 'var(--red)' : 'var(--muted)') + ';font-size:0.75rem;">' + (labels[item.spice_level] || '') + '</span></span>';
+    return html;
   }
 
   // ---------- ROUTER ----------
@@ -729,25 +1133,24 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   }
 
   function getRoute() {
-    const h = (window.location.hash || '#landing').slice(1);
+    const h = (window.location.hash || '#home').slice(1);
     const parts = h.split('/');
-    return { screen: parts[0] || 'landing', param: parts[1] || null };
+    return { screen: parts[0] || 'home', param: parts[1] || null, param2: parts[2] || null };
   }
 
   function render() {
-    const { screen, param } = getRoute();
+    const { screen, param, param2 } = getRoute();
     const app = document.getElementById('app');
 
     const routes = {
-      landing: renderLanding,
-      join: renderJoin,
-      vendor: renderVendor,
-      camera: renderCamera,
-      edit: renderEdit,
-      preview: renderPreview,
+      home: renderHome,
+      event: renderEventDetail,
       browse: renderBrowse,
       item: renderItemDetail,
-      create: renderCreate,
+      join: renderJoin,
+      edit: renderEdit,
+      vendor: renderVendorDashboard,
+      'create-event': renderCreateEvent,
     };
 
     const fn = routes[screen];
@@ -756,9 +1159,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       const div = document.createElement('div');
       div.className = 'screen';
       app.appendChild(div);
-      fn(div, param);
+      fn(div, param, param2);
     } else {
-      app.innerHTML = '<div class="screen"><div class="center spacer-lg"></div><h1 class="center">404</h1><p class="center muted">Page not found</p><div class="spacer-lg"></div><button class="btn btn-primary" onclick="location.hash=\'#landing\'">Go Home</button></div>';
+      app.innerHTML = '<div class="screen"><div class="center spacer-lg"></div><h1 class="center">404</h1><p class="center muted">Page not found</p><div class="spacer-lg"></div><button class="btn btn-primary" onclick="location.hash=\'#home\'">Go Home</button></div>';
     }
   }
 
@@ -768,15 +1171,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   function checkStripeReturn() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('paid') === 'true' && params.get('session')) {
-      // Store session token if provided
       const sessionToken = params.get('session');
       if (sessionToken && sessionToken !== getToken()) {
         save('session_token', sessionToken);
       }
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname + window.location.hash);
       toast('Payment successful! Your booth is live.', 'success');
-      // Refresh vendor data
       refreshVendor();
       navigate('#vendor');
       return true;
@@ -796,6 +1196,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       } else {
         state.vendor = data;
         save('vendor', data);
+        if (data.items) state.items = data.items;
       }
     } catch(e) { /* silent */ }
   }
@@ -804,14 +1205,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   // SCREENS
   // ============================================================
 
-  // ---------- #landing ----------
-  function renderLanding(root) {
+  // ---------- #home (Event Landing Page) ----------
+  function renderHome(root) {
     root.innerHTML = `
       <div class="spacer-lg"></div>
       <div class="logo">Flash<span>Shop</span></div>
       <p class="center muted small" style="margin-bottom: 24px;">Your instant marketplace</p>
       <div id="events-list"><div class="center muted" style="padding:24px;">Finding events near you...</div></div>
-      <div id="event-info" style="display:none;"></div>
       <div class="spacer"></div>
       <div class="code-toggle" id="code-toggle-btn">Have an event code? &#9660;</div>
       <div class="code-toggle-content" id="code-section">
@@ -820,14 +1220,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <label>Event Code</label>
             <input type="text" id="join-code" placeholder="Enter event code" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase; text-align:center; font-size:1.2rem; letter-spacing:3px;">
           </div>
-          <button class="btn btn-primary" id="join-btn">Join Event</button>
+          <button class="btn btn-primary" id="join-btn">Find Event</button>
         </div>
       </div>
       <div class="spacer"></div>
-      <p class="center"><a class="link" href="#create">Create an Event</a></p>
+      <p class="center"><a class="link" href="#create-event">Create an Event</a></p>
+      ${getToken() ? '<div class="spacer"></div><p class="center"><a class="link" href="#vendor">My Booth</a></p>' : ''}
     `;
 
-    // Toggle event code section
     $('#code-toggle-btn', root).addEventListener('click', () => {
       const section = $('#code-section', root);
       section.classList.toggle('open');
@@ -835,52 +1235,28 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       btn.innerHTML = section.classList.contains('open') ? 'Have an event code? &#9650;' : 'Have an event code? &#9660;';
     });
 
-    // Event code input (secondary option)
     const codeInput = $('#join-code', root);
     const joinBtn = $('#join-btn', root);
-    const infoDiv = $('#event-info', root);
 
     codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinBtn.click(); });
 
     joinBtn.addEventListener('click', async () => {
       const code = codeInput.value.trim().toUpperCase();
       if (!code) { toast('Please enter an event code', 'error'); return; }
-
       joinBtn.disabled = true;
       joinBtn.textContent = 'Looking up...';
-
       try {
         const event = await api('GET', '/api/events/' + encodeURIComponent(code));
-        state.event = event;
-        save('event_id', event.id);
-        save('event', event);
-
-        infoDiv.style.display = 'block';
-        infoDiv.innerHTML = `
-          <div class="event-card">
-            <h2>${esc(event.name)}</h2>
-            ${event.starts_at || event.ends_at ? '<p class="event-dates">' + formatDate(event.starts_at) + (event.ends_at ? ' &mdash; ' + formatDate(event.ends_at) : '') + '</p>' : ''}
-            ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
-            ${event.description ? '<p class="small" style="margin-top:8px;">' + esc(event.description) + '</p>' : ''}
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" id="vendor-btn">Join as Vendor</button>
-            <button class="btn btn-secondary" id="browse-btn">Browse as Buyer</button>
-          </div>
-        `;
-
-        $('#vendor-btn', infoDiv).addEventListener('click', () => navigate('#join'));
-        $('#browse-btn', infoDiv).addEventListener('click', () => navigate('#browse'));
-
+        saveSession(null, event);
+        navigate('#event/' + event.id);
       } catch(e) {
         toast(e.message || 'Event not found', 'error');
       } finally {
         joinBtn.disabled = false;
-        joinBtn.textContent = 'Join Event';
+        joinBtn.textContent = 'Find Event';
       }
     });
 
-    // Event discovery: fetch active events and user location
     loadEventDiscovery(root);
   }
 
@@ -888,23 +1264,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     const listDiv = $('#events-list', root);
     if (!listDiv) return;
 
-    let userLat = null, userLng = null;
+    const geoPromise = requestGeolocation();
 
-    // Request geolocation (non-blocking)
-    const geoPromise = new Promise((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          userLat = pos.coords.latitude;
-          userLng = pos.coords.longitude;
-          resolve(pos);
-        },
-        () => resolve(null),
-        { timeout: 5000, maximumAge: 300000 }
-      );
-    });
-
-    // Fetch active events
     let events = [];
     try {
       const data = await api('GET', '/api/discover?status=active');
@@ -914,24 +1275,21 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       return;
     }
 
-    // Wait for geolocation (with timeout already set)
     await geoPromise;
 
     if (!events.length) {
-      listDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127915;</div><p>No active events nearby</p><p class="small muted">Create one or enter an event code below</p></div>';
+      listDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127915;</div><p>No active events nearby</p><p class="small muted">Create one or enter an event code</p></div>';
       return;
     }
 
-    // Calculate distances if we have user location
-    if (userLat !== null && userLng !== null) {
+    if (state.userLat !== null && state.userLng !== null) {
       events.forEach(ev => {
         if (ev.location_lat != null && ev.location_lng != null) {
-          ev._distance = haversineDistance(userLat, userLng, ev.location_lat, ev.location_lng);
+          ev._distance = haversineDistance(state.userLat, state.userLng, ev.location_lat, ev.location_lng);
         } else {
           ev._distance = null;
         }
       });
-      // Sort by distance (events with no coords go to end)
       events.sort((a, b) => {
         if (a._distance == null && b._distance == null) return 0;
         if (a._distance == null) return 1;
@@ -939,7 +1297,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         return a._distance - b._distance;
       });
     } else {
-      // Sort by start date (soonest first)
       events.sort((a, b) => {
         const da = a.starts_at ? new Date(a.starts_at).getTime() : Infinity;
         const db = b.starts_at ? new Date(b.starts_at).getTime() : Infinity;
@@ -949,133 +1306,958 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     listDiv.innerHTML = '<p class="muted small" style="margin-bottom:12px;">Events near you</p>' +
       events.map(ev => {
-        const distStr = ev._distance != null ? '<span class="ed-distance">' + ev._distance.toFixed(1) + ' mi</span>' : '';
+        const distStr = ev._distance != null ? '<span class="ed-distance">' + formatDistance(ev._distance) + '</span>' : '';
+        const dateStr = formatDateRange(ev.starts_at, ev.ends_at);
+        const hasCover = ev.cover_image_url;
         return `
-          <div class="event-discover-card" data-event-id="${ev.id}" data-event="${esc(JSON.stringify(ev))}">
-            <div class="ed-name">${esc(ev.name)}</div>
-            ${ev.location_name ? '<div class="ed-location">' + esc(ev.location_name) + '</div>' : ''}
-            <div class="ed-meta">
-              ${ev.starts_at ? '<span>&#128197; ' + formatDate(ev.starts_at) + '</span>' : ''}
-              ${distStr}
-              ${ev.vendor_count != null ? '<span>&#128722; ' + ev.vendor_count + ' vendors</span>' : ''}
-              ${ev.item_count != null ? '<span>&#128230; ' + ev.item_count + ' items</span>' : ''}
+          <div class="event-discover-card" data-event-id="${esc(ev.id)}">
+            ${hasCover ? '<img class="event-cover" src="' + esc(ev.cover_image_url) + '" alt="" onerror="this.style.display=\'none\'">' : '<div class="event-cover-placeholder">&#127918;</div>'}
+            <div class="event-card-body">
+              <div class="ed-name">${esc(ev.name)}</div>
+              ${dateStr ? '<div class="ed-datetime">' + esc(dateStr) + '</div>' : ''}
+              ${ev.location_name ? '<div class="ed-location">' + esc(ev.location_name) + '</div>' : ''}
+              <div class="ed-meta">
+                ${distStr}
+                ${ev.vendor_count != null ? '<span>&#128722; ' + ev.vendor_count + ' vendors</span>' : ''}
+                ${ev.listed_count != null ? '<span>&#128230; ' + ev.listed_count + ' items</span>' : (ev.item_count != null ? '<span>&#128230; ' + ev.item_count + ' items</span>' : '')}
+              </div>
             </div>
           </div>
         `;
       }).join('');
 
-    // Handle card clicks
     $$('.event-discover-card', listDiv).forEach(card => {
       card.addEventListener('click', () => {
-        let ev;
-        try { ev = JSON.parse(card.dataset.event); } catch(e) { return; }
-        showEventDetail(root, ev);
+        const eventId = card.dataset.eventId;
+        navigate('#event/' + eventId);
       });
     });
   }
 
-  function showEventDetail(root, event) {
-    const infoDiv = $('#event-info', root);
-    if (!infoDiv) return;
+  // ---------- #event/:eventId (Event Detail Page) ----------
+  function renderEventDetail(root, eventId) {
+    if (!eventId) { navigate('#home'); return; }
 
-    state.event = event;
-    save('event_id', event.id);
-    save('event', event);
+    root.innerHTML = '<div class="center muted" style="padding:48px;">Loading event...</div>';
 
-    infoDiv.style.display = 'block';
-    infoDiv.innerHTML = `
-      <div class="event-card">
-        <h2>${esc(event.name)}</h2>
-        ${event.starts_at || event.ends_at ? '<p class="event-dates">' + formatDate(event.starts_at) + (event.ends_at ? ' &mdash; ' + formatDate(event.ends_at) : '') + '</p>' : ''}
-        ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
-        ${event.description ? '<p class="small" style="margin-top:8px;">' + esc(event.description) + '</p>' : ''}
-        ${event.vendor_count != null ? '<p class="muted small" style="margin-top:8px;">' + event.vendor_count + ' vendors &middot; ' + (event.item_count || 0) + ' items</p>' : ''}
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="vendor-btn">Join as Vendor</button>
-        <button class="btn btn-secondary" id="browse-btn">Browse as Buyer</button>
-      </div>
-    `;
-
-    $('#vendor-btn', infoDiv).addEventListener('click', () => navigate('#join'));
-    $('#browse-btn', infoDiv).addEventListener('click', () => navigate('#browse'));
-
-    // Scroll to it
-    infoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    loadEventDetail(root, eventId);
   }
 
-  // ---------- #join ----------
-  function renderJoin(root) {
-    if (!state.event) { navigate('#landing'); return; }
+  async function loadEventDetail(root, eventId) {
+    let event;
+    try {
+      event = await api('GET', '/api/events/by-id/' + encodeURIComponent(eventId));
+    } catch(e) {
+      root.innerHTML = '<div class="header"><button class="back-btn" onclick="location.hash=\'#home\'">&larr;</button><h2>Event</h2></div><p class="center muted">Event not found</p>';
+      return;
+    }
+
+    saveSession(null, event);
+
+    const dateStr = formatDateRange(event.starts_at, event.ends_at);
+    const hasCover = event.cover_image_url;
+
+    root.innerHTML = `
+      ${hasCover ? '<img class="event-banner" src="' + esc(event.cover_image_url) + '" alt="" onerror="this.outerHTML=\'<div class=event-banner-placeholder>&#127918;</div>\'">' : '<div class="event-banner-placeholder">&#127918;</div>'}
+      <h1>${esc(event.name)}</h1>
+      ${dateStr ? '<p style="color:var(--accent);margin-bottom:4px;font-weight:500;">' + esc(dateStr) + '</p>' : ''}
+      ${event.location_name ? '<p class="muted" style="margin-bottom:16px;">' + esc(event.location_name) + '</p>' : '<div class="spacer"></div>'}
+      ${event.description ? '<p class="small muted" style="margin-bottom:16px;">' + esc(event.description) + '</p>' : ''}
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num">${event.vendor_count || event.stats?.vendor_count || 0}</div>
+          <div class="stat-label">Vendors</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${event.listed_count || event.stats?.listed_count || event.item_count || 0}</div>
+          <div class="stat-label">Items</div>
+        </div>
+      </div>
+      <div class="browse-buttons">
+        <button class="browse-btn-big" id="browse-shop-btn">
+          <div class="browse-icon">&#128717;</div>
+          <div class="browse-label">Shop</div>
+        </button>
+        <button class="browse-btn-big" id="browse-menu-btn">
+          <div class="browse-icon">&#127828;</div>
+          <div class="browse-label">Menu</div>
+        </button>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-outline" id="join-vendor-btn">Join as Vendor</button>
+      <div class="spacer"></div>
+      <p class="center"><a class="link" href="#home">&larr; All Events</a></p>
+    `;
+
+    $('#browse-shop-btn', root).addEventListener('click', () => navigate('#browse/' + eventId + '/shop'));
+    $('#browse-menu-btn', root).addEventListener('click', () => navigate('#browse/' + eventId + '/menu'));
+    $('#join-vendor-btn', root).addEventListener('click', () => navigate('#join/' + eventId));
+  }
+
+  // ---------- #browse/:eventId/:tab (Browse Page) ----------
+  function renderBrowse(root, eventId, tab) {
+    if (!eventId) {
+      eventId = getEventId();
+      if (!eventId) { navigate('#home'); return; }
+    }
+
+    tab = tab || 'shop';
+    state.activeTab = tab;
+
+    const eventName = state.event ? state.event.name : 'Marketplace';
 
     root.innerHTML = `
       <div class="header">
-        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
-        <h2>Join as Vendor</h2>
+        <button class="back-btn" id="browse-back">&larr;</button>
+        <h2>${esc(eventName)}</h2>
       </div>
-      <div class="event-card" style="text-align:left; margin-top:0;">
-        <p class="muted small">Joining</p>
-        <h3>${esc(state.event.name)}</h3>
+      <div class="tab-bar">
+        <button class="tab-btn ${tab === 'shop' ? 'active' : ''}" data-tab="shop">&#128717; Shop</button>
+        <button class="tab-btn ${tab === 'menu' ? 'active' : ''}" data-tab="menu">&#127828; Menu</button>
       </div>
-      <div class="card">
-        <div class="input-group">
-          <label>Display Name</label>
-          <input type="text" id="display-name" placeholder="Your name or business name">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search items...">
+        <button class="filter-btn" id="filter-open-btn">&#9776;</button>
+      </div>
+      <div id="browse-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    $('#browse-back', root).addEventListener('click', () => navigate('#event/' + eventId));
+
+    $$('.tab-btn', root).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newTab = btn.dataset.tab;
+        navigate('#browse/' + eventId + '/' + newTab);
+      });
+    });
+
+    let searchTimeout = null;
+    const searchInput = $('#search-input', root);
+
+    function doSearch() {
+      loadBrowseItems(root, eventId, state.activeTab, searchInput.value.trim(), state.selectedCategories, state.filterSort);
+    }
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(doSearch, 350);
+    });
+
+    $('#filter-open-btn', root).addEventListener('click', () => {
+      openFilterModal(root, eventId, searchInput);
+    });
+
+    state.selectedCategories = [];
+    state.filterSort = 'newest';
+    doSearch();
+  }
+
+  async function loadBrowseItems(root, eventId, tab, query, categories, sort) {
+    const gridDiv = $('#browse-grid', root);
+    if (!gridDiv) return;
+
+    const itemType = tab === 'menu' ? 'food' : 'product';
+    let url = '/api/items?event_id=' + encodeURIComponent(eventId) + '&status=listed&type=' + itemType;
+    if (query) url += '&q=' + encodeURIComponent(query);
+    if (categories && categories.length === 1) url += '&category=' + encodeURIComponent(categories[0]);
+    if (sort && sort !== 'newest') url += '&sort=' + encodeURIComponent(sort);
+
+    try {
+      const result = await api('GET', url);
+      let list = Array.isArray(result) ? result : (result.items || []);
+
+      if (categories && categories.length > 1) {
+        list = list.filter(item => categories.includes(item.category));
+      }
+
+      if (sort === 'popular') {
+        list.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+      }
+
+      state.browseItems = list;
+
+      const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
+      state.filterCategories = cats;
+
+      if (!list.length) {
+        gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128270;</div><p>No items found</p><p class="small muted">' + (tab === 'menu' ? 'No food items listed yet' : 'No merchandise listed yet') + '</p></div>';
+        return;
+      }
+
+      const isMenu = tab === 'menu';
+
+      gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => {
+        const pUrl = photoUrl(item);
+        const diets = isMenu ? dietaryPillsHtml(item) : '';
+        const spice = isMenu ? spiceLevelHtml(item) : '';
+        return `
+          <div class="item-card" data-id="${esc(item.id)}">
+            <img src="${pUrl ? esc(pUrl) : placeholderImg()}" alt="" onerror="this.src='${placeholderImg()}'">
+            <div class="item-info">
+              <div class="item-title">${esc(item.title || 'Untitled')}</div>
+              <div class="item-price">${cents(item.price_cents)}</div>
+              ${item.vendor_name ? '<div class="item-vendor">' + esc(item.vendor_name) + '</div>' : ''}
+              ${diets ? '<div class="item-diets">' + diets + '</div>' : ''}
+              ${spice ? '<div style="margin-top:4px;">' + spice + '</div>' : ''}
+              ${isMenu && item.optional_proteins ? '<div class="muted" style="font-size:0.7rem;margin-top:2px;">+ ' + esc(item.optional_proteins) + '</div>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('') + '</div>';
+
+      $$('.item-card', gridDiv).forEach(el => {
+        el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+      });
+
+    } catch(e) {
+      gridDiv.innerHTML = '<p class="center muted">Failed to load items: ' + esc(e.message) + '</p>';
+    }
+  }
+
+  function openFilterModal(root, eventId, searchInput) {
+    const existing = document.querySelector('.filter-modal-backdrop');
+    if (existing) existing.remove();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'filter-modal-backdrop';
+
+    const cats = state.filterCategories;
+    const sortOptions = [
+      { value: 'newest', label: 'Newest' },
+      { value: 'price_asc', label: 'Price: Low to High' },
+      { value: 'price_desc', label: 'Price: High to Low' },
+      { value: 'popular', label: 'Popular' },
+    ];
+
+    backdrop.innerHTML = `
+      <div class="filter-modal">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;">Filters</h3>
+          <button style="background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;" id="filter-close">&times;</button>
         </div>
-        <div class="input-group">
-          <label>Booth Location</label>
-          <input type="text" id="booth-loc" placeholder="e.g. Table 5, Near entrance">
+        ${cats.length ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Category</div>
+            <div class="checkbox-group" id="cat-checkboxes">
+              ${cats.map(c => `<div class="checkbox-pill ${state.selectedCategories.includes(c) ? 'selected' : ''}" data-cat="${esc(c)}">${esc(c)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+        <div class="filter-section">
+          <div class="filter-section-title">Sort by</div>
+          <div class="checkbox-group" id="sort-options">
+            ${sortOptions.map(o => `<div class="checkbox-pill ${state.filterSort === o.value ? 'selected' : ''}" data-sort="${o.value}">${o.label}</div>`).join('')}
+          </div>
         </div>
-        <button class="btn btn-primary" id="join-submit">Join Event</button>
+        <div class="spacer"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="filter-reset">Reset</button>
+          <button class="btn btn-primary" id="filter-apply">Apply</button>
+        </div>
       </div>
     `;
 
+    document.body.appendChild(backdrop);
+
+    let selectedCats = [...state.selectedCategories];
+    let selectedSort = state.filterSort;
+
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) backdrop.remove();
+    });
+
+    $('#filter-close', backdrop).addEventListener('click', () => backdrop.remove());
+
+    $$('#cat-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const cat = pill.dataset.cat;
+        if (selectedCats.includes(cat)) {
+          selectedCats = selectedCats.filter(c => c !== cat);
+          pill.classList.remove('selected');
+        } else {
+          selectedCats.push(cat);
+          pill.classList.add('selected');
+        }
+      });
+    });
+
+    $$('#sort-options .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        $$('#sort-options .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        selectedSort = pill.dataset.sort;
+      });
+    });
+
+    $('#filter-reset', backdrop).addEventListener('click', () => {
+      selectedCats = [];
+      selectedSort = 'newest';
+      $$('#cat-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#sort-options .checkbox-pill', backdrop).forEach(p => {
+        p.classList.toggle('selected', p.dataset.sort === 'newest');
+      });
+    });
+
+    $('#filter-apply', backdrop).addEventListener('click', () => {
+      state.selectedCategories = selectedCats;
+      state.filterSort = selectedSort;
+      backdrop.remove();
+      loadBrowseItems(root, eventId, state.activeTab, searchInput.value.trim(), state.selectedCategories, state.filterSort);
+    });
+  }
+
+  // ---------- #item/:itemId (Item Detail Page) ----------
+  function renderItemDetail(root, itemId) {
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" id="item-back">&larr;</button>
+        <h2>Item Details</h2>
+      </div>
+      <div id="item-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    $('#item-back', root).addEventListener('click', () => {
+      window.history.back();
+    });
+
+    loadItemDetail(root, itemId);
+  }
+
+  async function loadItemDetail(root, itemId) {
+    const contentDiv = $('#item-content', root);
+
+    // Increment view count (fire and forget)
+    api('PUT', '/api/items/' + encodeURIComponent(itemId) + '/view').catch(() => {});
+
+    let item = state.browseItems.find(i => String(i.id) === String(itemId))
+             || state.items.find(i => String(i.id) === String(itemId));
+
+    if (!item) {
+      try {
+        item = await api('GET', '/api/items/' + encodeURIComponent(itemId));
+      } catch(e) {
+        contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
+        return;
+      }
+    }
+
+    const pUrl = photoUrl(item);
+    const conditionLabels = { new: 'New', like_new: 'Like New', good: 'Good', fair: 'Fair', poor: 'Poor' };
+    const isFood = item.type === 'food';
+    const diets = dietaryPillsHtml(item);
+    const spice = spiceLevelHtml(item);
+
+    let vendorSection = '';
+    const vendorLogo = item.vendor_logo_url;
+    const vendorName = item.vendor_name || 'Vendor';
+    const vendorInitial = vendorName[0].toUpperCase();
+    const boothLoc = item.booth_location || item.vendor_booth_location || '';
+
+    vendorSection = `
+      <div class="vendor-info-card">
+        ${vendorLogo ? '<img class="vendor-avatar" src="' + esc(vendorLogo) + '" alt="" onerror="this.outerHTML=\'<div class=vendor-avatar-placeholder>' + esc(vendorInitial) + '</div>\'">' : '<div class="vendor-avatar-placeholder">' + esc(vendorInitial) + '</div>'}
+        <div>
+          <div style="font-weight:600;">${esc(vendorName)}</div>
+          ${boothLoc ? '<div class="muted small">' + esc(boothLoc) + '</div>' : ''}
+        </div>
+      </div>
+    `;
+
+    contentDiv.innerHTML = `
+      ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+      <h1 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h1>
+      <div style="margin-bottom:12px;">
+        <span class="detail-price">${cents(item.price_cents)}</span>
+        ${item.price_note ? '<span style="color:var(--muted);font-size:0.85rem;margin-left:8px;">' + esc(item.price_note) + '</span>' : ''}
+      </div>
+      ${isFood && diets ? '<div style="margin-bottom:8px;">' + diets + '</div>' : ''}
+      ${isFood && spice ? '<div style="margin-bottom:8px;">' + spice + '</div>' : ''}
+      ${isFood && item.optional_proteins ? '<p class="muted small" style="margin-bottom:8px;">Optional proteins: <strong style="color:var(--text);">' + esc(item.optional_proteins) + '</strong></p>' : ''}
+      ${!isFood && item.condition ? '<p class="muted small" style="margin-bottom:12px;">Condition: <strong style="color:var(--text);">' + esc(conditionLabels[item.condition] || item.condition) + '</strong></p>' : ''}
+      ${item.category ? '<p class="muted small" style="margin-bottom:12px;">Category: ' + esc(item.category) + '</p>' : ''}
+      ${item.description ? '<div class="card"><p class="small">' + esc(item.description) + '</p></div>' : ''}
+      <hr class="divider">
+      ${vendorSection}
+    `;
+  }
+
+  // ---------- #join/:eventId (Vendor Onboarding) ----------
+  function renderJoin(root, eventId) {
+    if (!eventId) {
+      eventId = getEventId();
+      if (!eventId) { navigate('#home'); return; }
+    }
+
+    let selectedType = 'product';
+    let selectedFiles = [];
+    let previousVendor = null;
+    let importSelected = false;
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#event/${esc(eventId)}'">&larr;</button>
+        <h2>Join as Vendor</h2>
+      </div>
+      <div class="input-group">
+        <label>What are you selling?</label>
+        <div class="toggle-group" id="type-toggle">
+          <button class="toggle-option active" data-type="product">&#128717; Merchandise</button>
+          <button class="toggle-option" data-type="food">&#127828; Food & Drinks</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Display Name *</label>
+        <input type="text" id="join-name" placeholder="Your name or business name">
+      </div>
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="join-email" placeholder="your@email.com (for returning vendors)">
+      </div>
+      <div id="welcome-back-area"></div>
+      <div class="input-group">
+        <label>Booth / Location</label>
+        <input type="text" id="join-booth" placeholder="e.g. Table 5, Near entrance">
+      </div>
+      <div class="input-group">
+        <label>Upload Images</label>
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">&#128247;</div>
+          <p>Tap to select photos of your items</p>
+          <p class="small muted">First logo/banner detected will be set as your logo</p>
+        </div>
+        <input type="file" id="join-files" accept="image/*" multiple style="display:none;">
+      </div>
+      <div id="upload-thumbs"></div>
+      <div id="upload-progress-area" style="display:none;">
+        <div class="upload-progress">
+          <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-fill" style="width:0%"></div></div>
+          <div class="progress-text" id="progress-text">Preparing...</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="join-submit">Join & Start Listing</button>
+    `;
+
+    // Type toggle
+    $$('#type-toggle .toggle-option', root).forEach(btn => {
+      btn.addEventListener('click', () => {
+        $$('#type-toggle .toggle-option', root).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedType = btn.dataset.type;
+      });
+    });
+
+    // Email lookup
+    let emailTimeout = null;
+    const emailInput = $('#join-email', root);
+    emailInput.addEventListener('input', () => {
+      clearTimeout(emailTimeout);
+      emailTimeout = setTimeout(async () => {
+        const email = emailInput.value.trim();
+        if (!email || !email.includes('@')) {
+          $('#welcome-back-area', root).innerHTML = '';
+          previousVendor = null;
+          return;
+        }
+        try {
+          const result = await api('GET', '/api/vendors/lookup?email=' + encodeURIComponent(email));
+          if (result && result.id) {
+            previousVendor = result;
+            const wba = $('#welcome-back-area', root);
+            wba.innerHTML = `
+              <div class="welcome-back">
+                <h3>Welcome back!</h3>
+                <p>Found your profile from ${esc(result.event_name || 'a previous event')}.</p>
+                <div class="spacer" style="height:8px;"></div>
+                <label class="check-row" style="cursor:pointer;">
+                  <input type="checkbox" id="import-check" checked>
+                  <span>Import ${result.item_count || ''} items from previous event</span>
+                </label>
+              </div>
+            `;
+            importSelected = true;
+            $('#import-check', wba).addEventListener('change', (e) => {
+              importSelected = e.target.checked;
+            });
+            // Pre-fill name if empty
+            const nameInput = $('#join-name', root);
+            if (!nameInput.value.trim() && result.display_name) {
+              nameInput.value = result.display_name;
+            }
+          } else {
+            previousVendor = null;
+            $('#welcome-back-area', root).innerHTML = '';
+          }
+        } catch(e) {
+          previousVendor = null;
+          $('#welcome-back-area', root).innerHTML = '';
+        }
+      }, 500);
+    });
+
+    // File upload zone
+    const fileInput = $('#join-files', root);
+    $('#upload-zone', root).addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      selectedFiles = selectedFiles.concat(files);
+      renderJoinThumbs(root, selectedFiles);
+    });
+
+    function renderJoinThumbs(root, files) {
+      const container = $('#upload-thumbs', root);
+      if (!files.length) {
+        container.innerHTML = '';
+        return;
+      }
+      container.innerHTML = '<div class="multi-thumb-grid">' +
+        files.map((f, i) => {
+          const url = URL.createObjectURL(f);
+          return '<div class="thumb-cell"><img src="' + url + '" alt=""><button class="remove-thumb" data-idx="' + i + '">&times;</button></div>';
+        }).join('') + '</div>';
+
+      $$('.remove-thumb', container).forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.idx);
+          selectedFiles.splice(idx, 1);
+          renderJoinThumbs(root, selectedFiles);
+        });
+      });
+    }
+
+    // Submit
     $('#join-submit', root).addEventListener('click', async () => {
-      const name = $('#display-name', root).value.trim();
-      const booth = $('#booth-loc', root).value.trim();
-      if (!name) { toast('Please enter your name', 'error'); return; }
+      const name = $('#join-name', root).value.trim();
+      const email = $('#join-email', root).value.trim();
+      const booth = $('#join-booth', root).value.trim();
+
+      if (!name) { toast('Please enter your display name', 'error'); return; }
 
       const btn = $('#join-submit', root);
       btn.disabled = true;
-      btn.textContent = 'Joining...';
+      btn.textContent = 'Creating vendor...';
 
       try {
-        const vendor = await api('POST', '/api/vendors', {
-          event_id: state.event.id,
+        // 1. Create vendor
+        const vendorData = {
+          event_id: eventId,
           display_name: name,
           booth_location: booth || null,
-        });
+          vendor_type: selectedType === 'food' ? 'food' : 'merchandise',
+          vendor_email: email || null,
+          contact_name: name,
+          contact_email: email || null,
+        };
+        const vendor = await api('POST', '/api/vendors', vendorData);
         saveSession(vendor, state.event);
-        toast('Welcome, ' + name + '!', 'success');
-        navigate('#vendor');
+        save('event_id', eventId);
+
+        // 2. Import items if selected
+        if (importSelected && previousVendor && previousVendor.id) {
+          btn.textContent = 'Importing items...';
+          try {
+            await api('POST', '/api/vendors/' + vendor.id + '/import-items?session=' + encodeURIComponent(vendor.session_token), {
+              source_vendor_id: previousVendor.id,
+            });
+          } catch(e) {
+            toast('Import failed: ' + e.message, 'error');
+          }
+        }
+
+        // 3. Upload images
+        let firstItemId = null;
+        if (selectedFiles.length > 0) {
+          const progressArea = $('#upload-progress-area', root);
+          const progressFill = $('#progress-fill', root);
+          const progressText = $('#progress-text', root);
+          progressArea.style.display = 'block';
+
+          const total = selectedFiles.length;
+          let completed = 0;
+          let failed = 0;
+          state.items = [];
+
+          for (let i = 0; i < total; i++) {
+            progressText.textContent = 'Analyzing ' + (i + 1) + ' of ' + total + ' images...';
+            progressFill.style.width = ((i / total) * 100) + '%';
+
+            try {
+              const fd = new FormData();
+              fd.append('photo', selectedFiles[i]);
+              fd.append('event_id', eventId);
+              fd.append('vendor_id', vendor.id);
+              fd.append('session_token', vendor.session_token);
+              fd.append('type', selectedType);
+
+              const item = await api('POST', '/api/items', fd, true);
+              state.items.push(item);
+              if (!firstItemId) firstItemId = item.id;
+              completed++;
+            } catch(e) {
+              failed++;
+            }
+          }
+
+          progressFill.style.width = '100%';
+          progressText.textContent = 'Done! ' + completed + ' uploaded' + (failed ? ', ' + failed + ' failed' : '');
+
+          toast(completed + ' item' + (completed !== 1 ? 's' : '') + ' created!', 'success');
+        } else {
+          toast('Welcome, ' + name + '!', 'success');
+        }
+
+        // 4. Navigate
+        if (firstItemId) {
+          navigate('#edit/' + firstItemId);
+        } else {
+          navigate('#vendor');
+        }
+
       } catch(e) {
         toast(e.message || 'Failed to join', 'error');
         btn.disabled = false;
-        btn.textContent = 'Join Event';
+        btn.textContent = 'Join & Start Listing';
       }
     });
   }
 
-  // ---------- #vendor ----------
-  function renderVendor(root) {
+  // ---------- #edit/:itemId (Compact Edit Screen) ----------
+  function renderEdit(root, itemId) {
     const token = getToken();
-    if (!token) { navigate('#landing'); return; }
+    if (!token) { navigate('#home'); return; }
 
     root.innerHTML = `
       <div class="header">
-        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
+        <h2>Edit Item</h2>
+      </div>
+      <div id="edit-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    loadEditItem(root, itemId);
+  }
+
+  async function loadEditItem(root, itemId) {
+    const contentDiv = $('#edit-content', root);
+
+    let item = null;
+    if (state.currentItem && String(state.currentItem.id) === String(itemId)) {
+      item = state.currentItem;
+    } else {
+      item = state.items.find(i => String(i.id) === String(itemId));
+    }
+    if (!item) {
+      try {
+        await refreshVendor();
+        item = state.items.find(i => String(i.id) === String(itemId));
+      } catch(e) {}
+    }
+    if (!item) {
+      contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
+      return;
+    }
+
+    state.currentItem = item;
+    const isFood = item.type === 'food';
+    const pUrl = photoUrl(item);
+
+    // Find item index in vendor's draft list for prior/next navigation
+    const editableItems = state.items.filter(i => i.status !== 'sold' && i.status !== 'removed');
+    const currentIdx = editableItems.findIndex(i => String(i.id) === String(itemId));
+    const hasPrior = currentIdx > 0;
+    const hasNext = currentIdx < editableItems.length - 1;
+
+    // Parse dietary info for food items
+    const dietaryFlags = {
+      vegetarian: item.dietary_vegetarian || false,
+      vegan: item.dietary_vegan || false,
+      glutenFree: item.dietary_gluten_free || false,
+      dairyFree: item.dietary_dairy_free || false,
+      nutFree: item.dietary_nut_free || false,
+    };
+
+    if (isFood) {
+      contentDiv.innerHTML = `
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
+          ${pUrl ? '<img class="edit-photo-small" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+          <div style="flex:1;">
+            <div class="input-group" style="margin-bottom:10px;">
+              <label>Dish Name</label>
+              <input type="text" id="edit-title" value="${esc(item.title || '')}">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Price</label>
+              <div class="price-input-wrap">
+                <span class="price-prefix">$</span>
+                <input type="number" id="edit-price" step="0.01" min="0" value="${item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ''}">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Optional Proteins</label>
+          <input type="text" id="edit-proteins" placeholder="e.g. Chicken, Shrimp, Tofu" value="${esc(item.optional_proteins || '')}">
+        </div>
+        <div class="collapsible-header" id="additional-toggle">
+          Additional Options <span class="arrow">&#9660;</span>
+        </div>
+        <div class="collapsible-content" id="additional-content">
+          <div style="padding:8px 0;">
+            <div class="filter-section-title" style="margin-bottom:8px;">Dietary Info</div>
+            <label class="check-row ${dietaryFlags.vegetarian ? 'checked' : ''}"><input type="checkbox" id="diet-vegetarian" ${dietaryFlags.vegetarian ? 'checked' : ''}> Vegetarian</label>
+            <label class="check-row ${dietaryFlags.vegan ? 'checked' : ''}"><input type="checkbox" id="diet-vegan" ${dietaryFlags.vegan ? 'checked' : ''}> Vegan</label>
+            <label class="check-row ${dietaryFlags.glutenFree ? 'checked' : ''}"><input type="checkbox" id="diet-gluten-free" ${dietaryFlags.glutenFree ? 'checked' : ''}> Gluten-Free</label>
+            <label class="check-row ${dietaryFlags.dairyFree ? 'checked' : ''}"><input type="checkbox" id="diet-dairy-free" ${dietaryFlags.dairyFree ? 'checked' : ''}> Dairy-Free</label>
+            <label class="check-row ${dietaryFlags.nutFree ? 'checked' : ''}"><input type="checkbox" id="diet-nut-free" ${dietaryFlags.nutFree ? 'checked' : ''}> Nut-Free</label>
+            <div class="spacer"></div>
+            <div class="filter-section-title" style="margin-bottom:8px;">Spice Level</div>
+            <div class="radio-row" id="spice-radios">
+              <div class="radio-pill ${(item.spice_level || 'none') === 'none' ? 'active' : ''}" data-spice="none">None</div>
+              <div class="radio-pill ${item.spice_level === 'mild' ? 'active' : ''}" data-spice="mild">Mild</div>
+              <div class="radio-pill ${item.spice_level === 'medium' ? 'active' : ''}" data-spice="medium">Medium</div>
+              <div class="radio-pill ${item.spice_level === 'hot' ? 'active' : ''}" data-spice="hot">Hot</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="input-group">
+              <label>Description</label>
+              <textarea id="edit-desc">${esc(item.description || '')}</textarea>
+            </div>
+          </div>
+        </div>
+        <div style="height:80px;"></div>
+      `;
+    } else {
+      contentDiv.innerHTML = `
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
+          ${pUrl ? '<img class="edit-photo-small" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+          <div style="flex:1;">
+            <div class="input-group" style="margin-bottom:10px;">
+              <label>Title</label>
+              <input type="text" id="edit-title" value="${esc(item.title || '')}">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Price</label>
+              <div class="price-input-wrap">
+                <span class="price-prefix">$</span>
+                <input type="number" id="edit-price" step="0.01" min="0" value="${item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ''}">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Condition</label>
+          <select id="edit-condition">
+            <option value="">Select condition</option>
+            <option value="new" ${item.condition === 'new' ? 'selected' : ''}>New</option>
+            <option value="like_new" ${item.condition === 'like_new' ? 'selected' : ''}>Like New</option>
+            <option value="good" ${item.condition === 'good' ? 'selected' : ''}>Good</option>
+            <option value="fair" ${item.condition === 'fair' ? 'selected' : ''}>Fair</option>
+            <option value="poor" ${item.condition === 'poor' ? 'selected' : ''}>Poor</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Vendor Notes (private)</label>
+          <input type="text" id="edit-notes" placeholder="Notes for yourself..." value="${esc(item.vendor_notes || '')}">
+        </div>
+        <div class="collapsible-header" id="additional-toggle">
+          Additional Options <span class="arrow">&#9660;</span>
+        </div>
+        <div class="collapsible-content" id="additional-content">
+          <div style="padding:8px 0;">
+            <div class="input-group">
+              <label>Description</label>
+              <textarea id="edit-desc">${esc(item.description || '')}</textarea>
+            </div>
+            <div class="input-group">
+              <label>Category</label>
+              <input type="text" id="edit-category" value="${esc(item.category || '')}">
+            </div>
+          </div>
+        </div>
+        <div style="height:80px;"></div>
+      `;
+    }
+
+    // Collapsible toggle
+    const toggleBtn = $('#additional-toggle', contentDiv);
+    const toggleContent = $('#additional-content', contentDiv);
+    if (toggleBtn && toggleContent) {
+      toggleBtn.addEventListener('click', () => {
+        toggleBtn.classList.toggle('open');
+        toggleContent.classList.toggle('open');
+      });
+    }
+
+    // Spice radio pills (food only)
+    if (isFood) {
+      let currentSpice = item.spice_level || 'none';
+      $$('#spice-radios .radio-pill', contentDiv).forEach(pill => {
+        pill.addEventListener('click', () => {
+          $$('#spice-radios .radio-pill', contentDiv).forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentSpice = pill.dataset.spice;
+        });
+      });
+    }
+
+    // Check-row styling
+    $$('.check-row input[type="checkbox"]', contentDiv).forEach(cb => {
+      cb.addEventListener('change', () => {
+        cb.closest('.check-row').classList.toggle('checked', cb.checked);
+      });
+    });
+
+    // Bottom nav bar
+    const existingNav = document.querySelector('.edit-bottom-nav');
+    if (existingNav) existingNav.remove();
+
+    const nav = document.createElement('div');
+    nav.className = 'edit-bottom-nav';
+    nav.innerHTML = `
+      <button class="nav-btn" id="nav-prior" ${!hasPrior ? 'disabled' : ''}>&larr; Prior</button>
+      <button class="nav-btn nav-save" id="nav-save">Save</button>
+      <button class="nav-btn nav-hide" id="nav-hide">Hide</button>
+      <button class="nav-btn" id="nav-next" ${!hasNext ? 'disabled' : ''}>Next &rarr;</button>
+    `;
+    document.body.appendChild(nav);
+
+    // Clean up nav on hash change
+    const cleanupNav = () => {
+      nav.remove();
+      window.removeEventListener('hashchange', cleanupNav);
+    };
+    window.addEventListener('hashchange', cleanupNav);
+
+    // Prior
+    $('#nav-prior', nav).addEventListener('click', () => {
+      if (hasPrior) {
+        navigate('#edit/' + editableItems[currentIdx - 1].id);
+      }
+    });
+
+    // Next
+    $('#nav-next', nav).addEventListener('click', () => {
+      if (hasNext) {
+        navigate('#edit/' + editableItems[currentIdx + 1].id);
+      }
+    });
+
+    // Save
+    $('#nav-save', nav).addEventListener('click', async () => {
+      const saveBtn = $('#nav-save', nav);
+      saveBtn.textContent = 'Saving...';
+      saveBtn.disabled = true;
+
+      const priceVal = parseFloat($('#edit-price', contentDiv).value);
+      const priceCents = isNaN(priceVal) ? 0 : Math.round(priceVal * 100);
+
+      const updateData = {
+        title: $('#edit-title', contentDiv).value.trim(),
+        price_cents: priceCents,
+        session_token: getToken(),
+      };
+
+      if (isFood) {
+        updateData.optional_proteins = ($('#edit-proteins', contentDiv) || {}).value || '';
+        updateData.description = ($('#edit-desc', contentDiv) || {}).value || '';
+
+        // Spice level
+        const activeSpice = $('#spice-radios .radio-pill.active', contentDiv);
+        updateData.spice_level = activeSpice ? activeSpice.dataset.spice : 'none';
+        if (updateData.spice_level === 'none') updateData.spice_level = null;
+
+        // Build spice_options string for backend compatibility
+        updateData.spice_options = updateData.spice_level || null;
+
+        // Dietary flags - pass as part of description or as separate fields
+        const dietChecks = {
+          dietary_vegetarian: ($('#diet-vegetarian', contentDiv) || {}).checked || false,
+          dietary_vegan: ($('#diet-vegan', contentDiv) || {}).checked || false,
+          dietary_gluten_free: ($('#diet-gluten-free', contentDiv) || {}).checked || false,
+          dietary_dairy_free: ($('#diet-dairy-free', contentDiv) || {}).checked || false,
+          dietary_nut_free: ($('#diet-nut-free', contentDiv) || {}).checked || false,
+        };
+        Object.assign(updateData, dietChecks);
+      } else {
+        updateData.condition = ($('#edit-condition', contentDiv) || {}).value || null;
+        updateData.vendor_notes = ($('#edit-notes', contentDiv) || {}).value || null;
+        updateData.description = ($('#edit-desc', contentDiv) || {}).value || '';
+        updateData.category = ($('#edit-category', contentDiv) || {}).value || null;
+      }
+
+      try {
+        const updated = await api('PUT', '/api/items/' + item.id, updateData);
+        // Update local state
+        const idx = state.items.findIndex(i => String(i.id) === String(item.id));
+        if (idx >= 0) {
+          state.items[idx] = { ...state.items[idx], ...updateData, ...updated };
+        }
+        state.currentItem = { ...item, ...updateData, ...updated };
+        toast('Saved!', 'success');
+      } catch(e) {
+        toast(e.message || 'Save failed', 'error');
+      } finally {
+        saveBtn.textContent = 'Save';
+        saveBtn.disabled = false;
+      }
+    });
+
+    // Hide
+    $('#nav-hide', nav).addEventListener('click', async () => {
+      const hideBtn = $('#nav-hide', nav);
+      hideBtn.textContent = 'Hiding...';
+      hideBtn.disabled = true;
+
+      try {
+        await api('PUT', '/api/items/' + item.id, {
+          status: 'removed',
+          session_token: getToken(),
+        });
+        // Remove from local state
+        const idx = state.items.findIndex(i => String(i.id) === String(item.id));
+        if (idx >= 0) {
+          state.items[idx].status = 'removed';
+        }
+        toast('Item hidden', 'success');
+        // Navigate to next if available
+        if (hasNext) {
+          navigate('#edit/' + editableItems[currentIdx + 1].id);
+        } else if (hasPrior) {
+          navigate('#edit/' + editableItems[currentIdx - 1].id);
+        } else {
+          navigate('#vendor');
+        }
+      } catch(e) {
+        toast(e.message || 'Failed to hide', 'error');
+        hideBtn.textContent = 'Hide';
+        hideBtn.disabled = false;
+      }
+    });
+  }
+
+  // ---------- #vendor (Vendor Dashboard) ----------
+  function renderVendorDashboard(root) {
+    const token = getToken();
+    if (!token) { navigate('#home'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#home'">&larr;</button>
         <h2>My Booth</h2>
       </div>
-      <div id="vendor-status"></div>
+      <div id="vendor-header"></div>
+      <div id="vendor-stats"></div>
       <div id="vendor-items"><div class="center muted" style="padding:24px;">Loading...</div></div>
       <div class="spacer"></div>
       <div id="vendor-actions"></div>
     `;
 
-    loadVendorDashboard(root);
+    loadVendorDashboardData(root);
   }
 
-  async function loadVendorDashboard(root) {
+  async function loadVendorDashboardData(root) {
     const token = getToken();
     try {
       const data = await api('GET', '/api/vendors/me?session=' + encodeURIComponent(token));
@@ -1091,36 +2273,75 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       state.items = items;
       save('vendor', vendor);
 
+      // Refresh event data too
+      if (vendor.event_id && (!state.event || state.event.id !== vendor.event_id)) {
+        try {
+          const ev = await api('GET', '/api/events/by-id/' + vendor.event_id);
+          saveSession(null, ev);
+        } catch(e) {}
+      }
+
       const isLive = vendor.status === 'live' || vendor.is_live;
-      const statusDiv = $('#vendor-status', root);
-      if (statusDiv) {
-        statusDiv.innerHTML = `
-          ${vendor.logo_url ? '<div style="margin-bottom:12px;"><img class="vendor-logo-small" src="' + esc(vendor.logo_url) + '" alt="" onerror="this.style.display=\'none\'"><strong>' + esc(vendor.display_name || '') + '</strong></div>' : ''}
+
+      // Header with name and logo
+      const headerDiv = $('#vendor-header', root);
+      if (headerDiv) {
+        headerDiv.innerHTML = `
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            ${vendor.logo_url ? '<img class="vendor-logo-small" src="' + esc(vendor.logo_url) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+            <div>
+              <h2 style="margin:0;">${esc(vendor.display_name || 'My Booth')}</h2>
+              ${vendor.booth_location ? '<p class="muted small">' + esc(vendor.booth_location) + '</p>' : ''}
+            </div>
+          </div>
           <div class="status-bar ${isLive ? 'status-live' : 'status-preview'}">
             <div class="dot"></div>
-            ${isLive ? 'Your booth is LIVE' : 'Preview Mode — Not visible to buyers yet'}
+            ${isLive ? 'Your booth is LIVE' : 'Preview Mode -- Not visible to buyers yet'}
           </div>
         `;
       }
 
+      // Stats
+      const draftCount = items.filter(i => i.status === 'draft' || i.status === 'approved').length;
+      const listedCount = items.filter(i => i.status === 'listed').length;
+      const statsDiv = $('#vendor-stats', root);
+      if (statsDiv) {
+        statsDiv.innerHTML = `
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-num">${draftCount}</div>
+              <div class="stat-label">Drafts</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num">${listedCount}</div>
+              <div class="stat-label">Listed</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Items list - sorted: drafts first, then listed, then sold
       const itemsDiv = $('#vendor-items', root);
       if (itemsDiv) {
-        if (!items.length) {
+        const statusOrder = { draft: 0, approved: 1, listed: 2, sold: 3, removed: 4 };
+        const sortedItems = [...items].sort((a, b) => (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5));
+
+        if (!sortedItems.length) {
           itemsDiv.innerHTML = `
             <div class="empty-state">
               <div class="empty-icon">&#128247;</div>
               <p>No items yet</p>
-              <p class="small muted">Take a photo to add your first item</p>
+              <p class="small muted">Add photos to list your items</p>
             </div>
           `;
         } else {
-          itemsDiv.innerHTML = items.map(item => `
-            <div class="vendor-item" data-id="${item.id}">
-              <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 fill=%22%2316213e%22/><text x=%2232%22 y=%2238%22 text-anchor=%22middle%22 fill=%22%238892b0%22 font-size=%2220%22>?</text></svg>'">
+          itemsDiv.innerHTML = sortedItems.map(item => `
+            <div class="vendor-item" data-id="${esc(item.id)}">
+              <img src="${photoUrl(item) ? esc(photoUrl(item)) : placeholderImg()}" alt="" onerror="this.src='${placeholderImg()}'">
               <div class="vendor-item-info">
                 <div class="item-title">${esc(item.title || 'Untitled')}</div>
                 <div class="item-meta">
-                  <span class="item-price" style="color:var(--accent);font-weight:700;">${cents(item.price_cents)}</span>
+                  <span style="color:var(--accent);font-weight:700;">${cents(item.price_cents)}</span>
                   <span class="badge ${badgeClass(item.status)}">${esc(item.status || 'draft')}</span>
                 </div>
               </div>
@@ -1133,42 +2354,54 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         }
       }
 
+      // Actions
       const actionsDiv = $('#vendor-actions', root);
       if (actionsDiv) {
+        const feeCents = (state.event && state.event.vendor_fee_cents) ? state.event.vendor_fee_cents : 999;
+        const feeDisplay = (feeCents / 100).toFixed(2);
+
         actionsDiv.innerHTML = `
-          <button class="btn btn-primary" id="add-item-btn">&#128247; Add Item</button>
+          <button class="btn btn-secondary" id="add-more-btn">&#128247; Add More Photos</button>
+          <input type="file" id="add-more-input" accept="image/*" multiple style="display:none;">
           <div class="spacer"></div>
-          <button class="upload-logo-btn" id="upload-logo-btn">&#127912; ${vendor.logo_url ? 'Change Logo' : 'Upload Logo'}</button>
-          <input type="file" id="logo-input" accept="image/*" style="display:none;">
-          <div class="spacer"></div>
-          <button class="btn btn-secondary" id="preview-btn">&#128065; Preview Marketplace</button>
-          <div class="spacer"></div>
-          ${!isLive ? '<button class="btn btn-outline" id="golive-btn">&#9889; Go Live &mdash; $' + ((state.event && state.event.vendor_fee_cents) ? (state.event.vendor_fee_cents / 100).toFixed(2) : '9.99') + '</button>' : ''}
+          ${!isLive ? '<button class="go-live-btn" id="golive-btn">Go Live -- $' + feeDisplay + '</button>' : ''}
         `;
 
-        $('#add-item-btn', actionsDiv).addEventListener('click', () => navigate('#camera'));
-        $('#preview-btn', actionsDiv).addEventListener('click', () => navigate('#preview'));
+        const addMoreBtn = $('#add-more-btn', actionsDiv);
+        const addMoreInput = $('#add-more-input', actionsDiv);
+        addMoreBtn.addEventListener('click', () => addMoreInput.click());
 
-        // Logo upload
-        const logoBtn = $('#upload-logo-btn', actionsDiv);
-        const logoInput = $('#logo-input', actionsDiv);
-        logoBtn.addEventListener('click', () => logoInput.click());
-        logoInput.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          logoBtn.textContent = 'Uploading...';
-          logoBtn.style.pointerEvents = 'none';
-          try {
-            const fd = new FormData();
-            fd.append('logo', file);
-            await api('POST', '/api/vendors/' + vendor.id + '/logo?session=' + encodeURIComponent(getToken()), fd, true);
-            toast('Logo uploaded!', 'success');
-            loadVendorDashboard(root);
-          } catch(e) {
-            toast(e.message || 'Logo upload failed', 'error');
-            logoBtn.textContent = vendor.logo_url ? 'Change Logo' : 'Upload Logo';
-            logoBtn.style.pointerEvents = '';
+        addMoreInput.addEventListener('change', async (e) => {
+          const files = Array.from(e.target.files);
+          if (!files.length) return;
+
+          addMoreBtn.disabled = true;
+          addMoreBtn.textContent = 'Uploading...';
+
+          const vendorType = vendor.vendor_type === 'food' ? 'food' : 'product';
+          let completed = 0;
+          let failed = 0;
+
+          for (let i = 0; i < files.length; i++) {
+            addMoreBtn.textContent = 'Analyzing ' + (i + 1) + ' of ' + files.length + '...';
+            try {
+              const fd = new FormData();
+              fd.append('photo', files[i]);
+              fd.append('event_id', getEventId() || vendor.event_id);
+              fd.append('vendor_id', vendor.id);
+              fd.append('session_token', getToken());
+              fd.append('type', vendorType);
+
+              const item = await api('POST', '/api/items', fd, true);
+              state.items.push(item);
+              completed++;
+            } catch(e) {
+              failed++;
+            }
           }
+
+          toast(completed + ' item' + (completed !== 1 ? 's' : '') + ' added!' + (failed ? ' (' + failed + ' failed)' : ''), 'success');
+          loadVendorDashboardData(root);
         });
 
         const liveBtn = $('#golive-btn', actionsDiv);
@@ -1188,7 +2421,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   async function goLive() {
     const token = getToken();
     const vendorId = getVendorId();
-    if (!token || !vendorId) { toast('Session expired', 'error'); navigate('#landing'); return; }
+    if (!token || !vendorId) { toast('Session expired', 'error'); navigate('#home'); return; }
 
     showSpinner('Redirecting to checkout...');
     try {
@@ -1207,636 +2440,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     }
   }
 
-  // ---------- #camera ----------
-  function renderCamera(root) {
-    const token = getToken();
-    if (!token) { navigate('#landing'); return; }
-
+  // ---------- #create-event (Create Event Page) ----------
+  function renderCreateEvent(root) {
     root.innerHTML = `
       <div class="header">
-        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
-        <h2>Add Item</h2>
-      </div>
-      <div id="photo-area">
-        <label class="photo-placeholder" for="photo-capture">
-          <div class="camera-icon">&#128247;</div>
-          <p>Tap to take a photo</p>
-          <p class="small muted">or choose multiple from gallery</p>
-        </label>
-        <input type="file" id="photo-capture" accept="image/*" capture="environment" style="display:none;">
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" id="gallery-btn">&#128444; Choose from Gallery (multiple)</button>
-        <input type="file" id="photo-gallery" accept="image/*" multiple style="display:none;">
-      </div>
-      <div id="photo-preview-single" style="display:none;">
-        <div class="photo-container">
-          <img id="preview-img" src="" alt="Preview">
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-secondary" id="retake-btn">Retake</button>
-          <button class="btn btn-primary" id="use-btn">Use This Photo</button>
-        </div>
-      </div>
-      <div id="photo-preview-multi" style="display:none;">
-        <p class="muted small" style="margin-bottom:8px;">Selected photos:</p>
-        <div class="multi-thumb-grid" id="multi-thumbs"></div>
-        <div class="btn-row">
-          <button class="btn btn-secondary" id="multi-clear-btn">Clear All</button>
-          <button class="btn btn-primary" id="multi-upload-btn">Upload All</button>
-        </div>
-        <div id="multi-progress" style="display:none;">
-          <div class="upload-progress">
-            <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-fill" style="width:0%"></div></div>
-            <div class="progress-text" id="progress-text">Preparing...</div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const captureInput = $('#photo-capture', root);
-    const galleryInput = $('#photo-gallery', root);
-    const photoArea = $('#photo-area', root);
-    const singlePreview = $('#photo-preview-single', root);
-    const multiPreview = $('#photo-preview-multi', root);
-    const previewImg = $('#preview-img', root);
-    let selectedFile = null;
-    let selectedFiles = [];
-
-    // Gallery button triggers multi-file input
-    $('#gallery-btn', root).addEventListener('click', () => {
-      galleryInput.click();
-    });
-
-    // Single capture
-    captureInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      selectedFile = file;
-      selectedFiles = [];
-      const url = URL.createObjectURL(file);
-      previewImg.src = url;
-      photoArea.style.display = 'none';
-      multiPreview.style.display = 'none';
-      singlePreview.style.display = 'block';
-    });
-
-    // Multi gallery select
-    galleryInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      if (!files.length) return;
-
-      if (files.length === 1) {
-        // Single file from gallery — use single flow
-        selectedFile = files[0];
-        selectedFiles = [];
-        const url = URL.createObjectURL(files[0]);
-        previewImg.src = url;
-        photoArea.style.display = 'none';
-        multiPreview.style.display = 'none';
-        singlePreview.style.display = 'block';
-        return;
-      }
-
-      // Multiple files
-      selectedFile = null;
-      selectedFiles = files;
-      photoArea.style.display = 'none';
-      singlePreview.style.display = 'none';
-      multiPreview.style.display = 'block';
-      renderMultiThumbs(root);
-    });
-
-    function renderMultiThumbs(root) {
-      const grid = $('#multi-thumbs', root);
-      grid.innerHTML = selectedFiles.map((f, i) => {
-        const url = URL.createObjectURL(f);
-        return '<div class="thumb-cell"><img src="' + url + '" alt=""><button class="remove-thumb" data-idx="' + i + '">&times;</button></div>';
-      }).join('');
-
-      $$('.remove-thumb', grid).forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.dataset.idx);
-          selectedFiles.splice(idx, 1);
-          if (selectedFiles.length === 0) {
-            multiPreview.style.display = 'none';
-            photoArea.style.display = 'block';
-            galleryInput.value = '';
-          } else {
-            renderMultiThumbs(root);
-          }
-        });
-      });
-
-      const uploadBtn = $('#multi-upload-btn', root);
-      uploadBtn.textContent = 'Upload All (' + selectedFiles.length + ')';
-    }
-
-    // Retake (single)
-    $('#retake-btn', root).addEventListener('click', () => {
-      selectedFile = null;
-      captureInput.value = '';
-      galleryInput.value = '';
-      singlePreview.style.display = 'none';
-      photoArea.style.display = 'block';
-    });
-
-    // Clear all (multi)
-    $('#multi-clear-btn', root).addEventListener('click', () => {
-      selectedFiles = [];
-      galleryInput.value = '';
-      multiPreview.style.display = 'none';
-      photoArea.style.display = 'block';
-    });
-
-    // Use single photo
-    $('#use-btn', root).addEventListener('click', async () => {
-      if (!selectedFile) return;
-
-      showSpinner('Uploading & analyzing with AI...');
-      try {
-        const fd = new FormData();
-        fd.append('photo', selectedFile);
-        fd.append('event_id', getEventId());
-        fd.append('vendor_id', getVendorId());
-        fd.append('session_token', getToken());
-        fd.append('type', 'product');
-
-        const item = await api('POST', '/api/items', fd, true);
-        hideSpinner();
-        toast('Item created!', 'success');
-        state.currentItem = item;
-        state.items.push(item);
-        navigate('#edit/' + item.id);
-      } catch(e) {
-        hideSpinner();
-        toast(e.message || 'Upload failed', 'error');
-      }
-    });
-
-    // Upload all (multi)
-    $('#multi-upload-btn', root).addEventListener('click', async () => {
-      if (!selectedFiles.length) return;
-
-      const total = selectedFiles.length;
-      const progressDiv = $('#multi-progress', root);
-      const progressFill = $('#progress-fill', root);
-      const progressText = $('#progress-text', root);
-      const uploadBtn = $('#multi-upload-btn', root);
-      const clearBtn = $('#multi-clear-btn', root);
-
-      uploadBtn.disabled = true;
-      clearBtn.disabled = true;
-      progressDiv.style.display = 'block';
-
-      let completed = 0;
-      let failed = 0;
-
-      for (let i = 0; i < total; i++) {
-        progressText.textContent = 'Analyzing ' + (i + 1) + ' of ' + total + ' items...';
-        progressFill.style.width = ((i / total) * 100) + '%';
-
-        try {
-          const fd = new FormData();
-          fd.append('photo', selectedFiles[i]);
-          fd.append('event_id', getEventId());
-          fd.append('vendor_id', getVendorId());
-          fd.append('session_token', getToken());
-          fd.append('type', 'product');
-
-          const item = await api('POST', '/api/items', fd, true);
-          state.items.push(item);
-          completed++;
-        } catch(e) {
-          failed++;
-        }
-      }
-
-      progressFill.style.width = '100%';
-      progressText.textContent = 'Done! ' + completed + ' uploaded' + (failed ? ', ' + failed + ' failed' : '');
-
-      if (completed > 0) {
-        toast(completed + ' item' + (completed !== 1 ? 's' : '') + ' created!' + (failed ? ' (' + failed + ' failed)' : ''), 'success');
-        setTimeout(() => navigate('#vendor'), 1000);
-      } else {
-        toast('All uploads failed', 'error');
-        uploadBtn.disabled = false;
-        clearBtn.disabled = false;
-      }
-    });
-  }
-
-  // ---------- #edit/:id ----------
-  function renderEdit(root, itemId) {
-    const token = getToken();
-    if (!token) { navigate('#landing'); return; }
-
-    root.innerHTML = `
-      <div class="header">
-        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
-        <h2>Edit Item</h2>
-      </div>
-      <div id="edit-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
-    `;
-
-    loadEditItem(root, itemId);
-  }
-
-  async function loadEditItem(root, itemId) {
-    const contentDiv = $('#edit-content', root);
-
-    // Find item in state - check currentItem first (freshly created items)
-    let item = null;
-    if (state.currentItem && String(state.currentItem.id) === String(itemId)) {
-      item = state.currentItem;
-    } else {
-      item = state.items.find(i => String(i.id) === String(itemId));
-    }
-    if (!item) {
-      try {
-        await refreshVendor();
-        item = state.items.find(i => String(i.id) === String(itemId));
-      } catch(e) {}
-    }
-    if (!item) {
-      contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
-      return;
-    }
-
-    state.currentItem = item;
-
-    const pUrl = photoUrl(item);
-    contentDiv.innerHTML = `
-      ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
-      <div class="input-group">
-        <label>Title</label>
-        <input type="text" id="edit-title" value="${esc(item.title || '')}">
-      </div>
-      <div class="input-group">
-        <label>Description</label>
-        <textarea id="edit-desc">${esc(item.description || '')}</textarea>
-      </div>
-      <div class="input-group">
-        <label>Category</label>
-        <input type="text" id="edit-category" value="${esc(item.category || '')}">
-      </div>
-      <div class="input-group">
-        <label>Condition</label>
-        <select id="edit-condition">
-          <option value="">Select condition</option>
-          <option value="new" ${item.condition === 'new' ? 'selected' : ''}>New</option>
-          <option value="like_new" ${item.condition === 'like_new' ? 'selected' : ''}>Like New</option>
-          <option value="good" ${item.condition === 'good' ? 'selected' : ''}>Good</option>
-          <option value="fair" ${item.condition === 'fair' ? 'selected' : ''}>Fair</option>
-          <option value="poor" ${item.condition === 'poor' ? 'selected' : ''}>Poor</option>
-        </select>
-      </div>
-      <div class="btn-row">
-        <div class="input-group" style="flex:1;">
-          <label>Price ($)</label>
-          <input type="number" id="edit-price" step="0.01" min="0" value="${item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ''}">
-        </div>
-        <div class="input-group" style="flex:1;">
-          <label>Price Note</label>
-          <select id="edit-pnote">
-            <option value="">None</option>
-            <option value="OBO" ${item.price_note === 'OBO' ? 'selected' : ''}>OBO</option>
-            <option value="Firm" ${item.price_note === 'Firm' ? 'selected' : ''}>Firm</option>
-            <option value="Negotiable" ${item.price_note === 'Negotiable' ? 'selected' : ''}>Negotiable</option>
-            <option value="Free" ${item.price_note === 'Free' ? 'selected' : ''}>Free</option>
-          </select>
-        </div>
-      </div>
-      <div class="input-group">
-        <label>Vendor Notes (private)</label>
-        <textarea id="edit-notes" placeholder="Notes for yourself...">${esc(item.vendor_notes || '')}</textarea>
-      </div>
-      <div class="spacer"></div>
-      <button class="btn btn-primary" id="approve-btn">${item.status === 'approved' || item.status === 'listed' ? 'Save Changes' : 'Approve & Save'}</button>
-      <div class="spacer"></div>
-      <button class="btn btn-secondary" id="another-btn">&#128247; Add Another Item</button>
-      ${item.status !== 'sold' ? '<div class="spacer"></div><button class="btn btn-outline btn-small" id="sold-btn" style="color:#f87171;border-color:#f87171;">Mark as Sold</button>' : ''}
-    `;
-
-    $('#approve-btn', contentDiv).addEventListener('click', async () => {
-      const btn = $('#approve-btn', contentDiv);
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-
-      const priceVal = parseFloat($('#edit-price', contentDiv).value);
-      const priceCents = isNaN(priceVal) ? 0 : Math.round(priceVal * 100);
-
-      try {
-        await api('PUT', '/api/items/' + (item.id), {
-          title: $('#edit-title', contentDiv).value.trim(),
-          description: $('#edit-desc', contentDiv).value.trim(),
-          category: $('#edit-category', contentDiv).value.trim() || null,
-          condition: $('#edit-condition', contentDiv).value || null,
-          price_cents: priceCents,
-          price_note: $('#edit-pnote', contentDiv).value || null,
-          vendor_notes: $('#edit-notes', contentDiv).value.trim() || null,
-          status: 'approved',
-          session_token: getToken(),
-        });
-        toast('Item saved!', 'success');
-        navigate('#vendor');
-      } catch(e) {
-        toast(e.message || 'Save failed', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Approve & Save';
-      }
-    });
-
-    $('#another-btn', contentDiv).addEventListener('click', () => navigate('#camera'));
-
-    const soldBtn = $('#sold-btn', contentDiv);
-    if (soldBtn) {
-      soldBtn.addEventListener('click', async () => {
-        soldBtn.disabled = true;
-        try {
-          await api('PUT', '/api/items/' + item.id + '/sold', { session_token: getToken() });
-          toast('Marked as sold!', 'success');
-          navigate('#vendor');
-        } catch(e) {
-          toast(e.message || 'Failed', 'error');
-          soldBtn.disabled = false;
-        }
-      });
-    }
-  }
-
-  // ---------- #preview ----------
-  function renderPreview(root) {
-    const token = getToken();
-    if (!token) { navigate('#landing'); return; }
-
-    root.innerHTML = `
-      <div class="header">
-        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
-        <h2>Preview</h2>
-      </div>
-      <div class="banner">This is how buyers see your booth</div>
-      <div id="preview-banner"></div>
-      <div id="preview-stats"></div>
-      <div id="preview-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
-      <div class="spacer-lg"></div>
-      <div id="preview-actions"></div>
-    `;
-
-    loadPreview(root);
-  }
-
-  async function loadPreview(root) {
-    const eventId = getEventId();
-
-    // Load stats
-    try {
-      const stats = await api('GET', '/api/events/' + eventId + '/stats');
-      const statsDiv = $('#preview-stats', root);
-      if (statsDiv) {
-        statsDiv.innerHTML = `
-          <div class="stats-row">
-            <div class="stat-box">
-              <div class="stat-num">${stats.vendor_count || 0}</div>
-              <div class="stat-label">Vendors</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-num">${stats.item_count || 0}</div>
-              <div class="stat-label">Items</div>
-            </div>
-          </div>
-        `;
-      }
-    } catch(e) { /* stats are optional */ }
-
-    // Load vendor items
-    try {
-      await refreshVendor();
-
-      // Render banner/logo
-      const bannerDiv = $('#preview-banner', root);
-      if (bannerDiv && state.vendor) {
-        if (state.vendor.logo_url) {
-          bannerDiv.innerHTML = '<div class="vendor-banner"><img src="' + esc(state.vendor.logo_url) + '" alt="' + esc(state.vendor.display_name || '') + '" onerror="this.parentElement.style.display=\'none\'"></div>';
-        } else {
-          bannerDiv.innerHTML = `
-            <div class="vendor-banner-placeholder">
-              <h1>${esc(state.vendor.display_name || 'My Booth')}</h1>
-              ${state.vendor.booth_location ? '<p>' + esc(state.vendor.booth_location) + '</p>' : ''}
-            </div>
-          `;
-        }
-      }
-
-      const gridDiv = $('#preview-grid', root);
-      if (gridDiv) {
-        const items = state.items.filter(i => i.status === 'approved' || i.status === 'listed');
-        if (!items.length) {
-          gridDiv.innerHTML = '<div class="empty-state"><p class="muted">No approved items yet</p></div>';
-        } else {
-          gridDiv.innerHTML = '<div class="item-grid">' + items.map(item => `
-            <div class="item-card" data-id="${item.id}">
-              <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
-              <div class="item-info">
-                <div class="item-title">${esc(item.title || 'Untitled')}</div>
-                <div class="item-price">${cents(item.price_cents)}</div>
-              </div>
-            </div>
-          `).join('') + '</div>';
-        }
-      }
-    } catch(e) {
-      const gridDiv = $('#preview-grid', root);
-      if (gridDiv) gridDiv.innerHTML = '<p class="center muted">Failed to load items</p>';
-    }
-
-    // Actions
-    const isLive = state.vendor && (state.vendor.status === 'live' || state.vendor.is_live);
-    const actionsDiv = $('#preview-actions', root);
-    if (actionsDiv && !isLive) {
-      actionsDiv.innerHTML = '<button class="btn btn-primary" id="golive-preview">&#9889; Go Live &mdash; $' + ((state.event && state.event.vendor_fee_cents) ? (state.event.vendor_fee_cents / 100).toFixed(2) : '9.99') + '</button>';
-      $('#golive-preview', actionsDiv).addEventListener('click', () => goLive());
-    }
-  }
-
-  // ---------- #browse ----------
-  function renderBrowse(root) {
-    const eventId = getEventId();
-    if (!eventId) { navigate('#landing'); return; }
-
-    root.innerHTML = `
-      <div class="header">
-        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
-        <h2>${esc(state.event ? state.event.name : 'Marketplace')}</h2>
-      </div>
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search items...">
-      </div>
-      <div class="filter-row">
-        <select id="filter-category">
-          <option value="">All Categories</option>
-        </select>
-        <select id="filter-sort">
-          <option value="newest">Newest</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-        </select>
-      </div>
-      <div id="browse-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
-    `;
-
-    let searchTimeout = null;
-    const searchInput = $('#search-input', root);
-    const catSelect = $('#filter-category', root);
-    const sortSelect = $('#filter-sort', root);
-
-    function doSearch() {
-      loadBrowseItems(root, searchInput.value.trim(), catSelect.value, sortSelect.value);
-    }
-
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(doSearch, 350);
-    });
-    catSelect.addEventListener('change', doSearch);
-    sortSelect.addEventListener('change', doSearch);
-
-    // Initial load
-    doSearch();
-
-    // Populate categories from results
-    loadCategories(catSelect);
-  }
-
-  async function loadCategories(select) {
-    // We'll populate from browse results
-    // For now the select has "All Categories" only
-  }
-
-  async function loadBrowseItems(root, query, category, sort) {
-    const eventId = getEventId();
-    const gridDiv = $('#browse-grid', root);
-    if (!gridDiv) return;
-
-    let url = '/api/items?event_id=' + encodeURIComponent(eventId) + '&status=listed';
-    if (query) url += '&q=' + encodeURIComponent(query);
-    if (category) url += '&category=' + encodeURIComponent(category);
-    if (sort) url += '&sort=' + encodeURIComponent(sort);
-
-    try {
-      const items = await api('GET', url);
-      const list = Array.isArray(items) ? items : (items.items || []);
-      state.browseItems = list;
-
-      // Update categories dropdown
-      const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
-      const catSelect = $('#filter-category', root);
-      if (catSelect && cats.length) {
-        const currentVal = catSelect.value;
-        const optionsHtml = '<option value="">All Categories</option>' + cats.map(c => `<option value="${esc(c)}" ${c === currentVal ? 'selected' : ''}>${esc(c)}</option>`).join('');
-        catSelect.innerHTML = optionsHtml;
-      }
-
-      if (!list.length) {
-        gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128270;</div><p>No items found</p></div>';
-        return;
-      }
-
-      gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => `
-        <div class="item-card" data-id="${item.id}">
-          <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
-          <div class="item-info">
-            <div class="item-title">${esc(item.title || 'Untitled')}</div>
-            <div class="item-price">${cents(item.price_cents)}</div>
-            ${item.vendor_name ? '<div class="item-vendor">' + esc(item.vendor_name) + '</div>' : ''}
-          </div>
-        </div>
-      `).join('') + '</div>';
-
-      $$('.item-card', gridDiv).forEach(el => {
-        el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
-      });
-
-    } catch(e) {
-      gridDiv.innerHTML = '<p class="center muted">Failed to load items: ' + esc(e.message) + '</p>';
-    }
-  }
-
-  // ---------- #item/:id ----------
-  function renderItemDetail(root, itemId) {
-    root.innerHTML = `
-      <div class="header">
-        <button class="back-btn" id="item-back">&larr;</button>
-        <h2>Item Details</h2>
-      </div>
-      <div id="item-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
-    `;
-
-    $('#item-back', root).addEventListener('click', () => {
-      // Go back to browse if we came from there, otherwise vendor
-      const token = getToken();
-      if (token && state.items.find(i => String(i.id) === String(itemId))) {
-        navigate('#vendor');
-      } else {
-        navigate('#browse');
-      }
-    });
-
-    loadItemDetail(root, itemId);
-  }
-
-  async function loadItemDetail(root, itemId) {
-    const contentDiv = $('#item-content', root);
-
-    // Check local state first
-    let item = state.browseItems.find(i => String(i.id) === String(itemId))
-             || state.items.find(i => String(i.id) === String(itemId));
-
-    if (!item) {
-      try {
-        item = await api('GET', '/api/items/' + itemId);
-      } catch(e) {
-        contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
-        return;
-      }
-    }
-
-    const pUrl = photoUrl(item);
-    const conditionLabels = { new: 'New', like_new: 'Like New', good: 'Good', fair: 'Fair', poor: 'Poor' };
-
-    contentDiv.innerHTML = `
-      ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
-      <h1 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h1>
-      <div style="margin-bottom:16px;">
-        <span class="detail-price">${cents(item.price_cents)}</span>
-        ${item.price_note ? '<span class="detail-note">' + esc(item.price_note) + '</span>' : ''}
-      </div>
-      ${item.condition ? '<p class="muted small" style="margin-bottom:12px;">Condition: <strong style="color:var(--text);">' + esc(conditionLabels[item.condition] || item.condition) + '</strong></p>' : ''}
-      ${item.description ? '<div class="card"><p>' + esc(item.description) + '</p></div>' : ''}
-      ${item.category ? '<p class="muted small" style="margin-bottom:16px;">Category: ' + esc(item.category) + '</p>' : ''}
-      <hr class="divider">
-      <div class="card" style="display:flex;align-items:center;gap:12px;">
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0;">${esc((item.vendor_name || '?')[0].toUpperCase())}</div>
-        <div>
-          <div style="font-weight:600;">${esc(item.vendor_name || 'Vendor')}</div>
-          ${item.booth_location ? '<div class="muted small">' + esc(item.booth_location) + '</div>' : ''}
-        </div>
-      </div>
-      <div class="spacer-lg"></div>
-      <button class="btn btn-primary" id="visit-booth-btn">I'm Interested &mdash; Visit Booth</button>
-    `;
-
-    $('#visit-booth-btn', contentDiv).addEventListener('click', () => {
-      const boothInfo = item.booth_location || 'their booth';
-      toast('Head to ' + boothInfo + ' to see this item!', 'success');
-    });
-  }
-
-  // ---------- #create ----------
-  function renderCreate(root) {
-    root.innerHTML = `
-      <div class="header">
-        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <button class="back-btn" onclick="location.hash='#home'">&larr;</button>
         <h2>Create Event</h2>
       </div>
       <div id="create-form">
@@ -1844,6 +2452,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <div class="input-group">
             <label>Event Name *</label>
             <input type="text" id="evt-name" placeholder="e.g. Spring Community Sale">
+          </div>
+          <div class="input-group">
+            <label>Event Type</label>
+            <select id="evt-type">
+              <option value="marketplace">Marketplace (Shop + Menu)</option>
+              <option value="menu">Food Menu Only</option>
+            </select>
           </div>
           <div class="input-group">
             <label>Description</label>
@@ -1861,10 +2476,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <label>End Date & Time</label>
             <input type="datetime-local" id="evt-end">
           </div>
-          <div class="input-group">
-            <label>Vendor Fee ($)</label>
-            <input type="number" id="evt-fee" step="0.01" min="0" value="9.99">
-          </div>
           <div class="spacer"></div>
           <button class="btn btn-primary" id="create-btn">Create Event</button>
         </div>
@@ -1880,61 +2491,38 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       btn.disabled = true;
       btn.textContent = 'Creating...';
 
-      const feeVal = parseFloat($('#evt-fee', root).value);
-      const feeCents = isNaN(feeVal) ? 999 : Math.round(feeVal * 100);
-
       const startVal = $('#evt-start', root).value;
       const endVal = $('#evt-end', root).value;
 
       try {
         const event = await api('POST', '/api/events', {
           name: name,
-          type: 'marketplace',
+          type: $('#evt-type', root).value || 'marketplace',
           description: $('#evt-desc', root).value.trim() || null,
           location_name: $('#evt-location', root).value.trim() || null,
           starts_at: startVal ? new Date(startVal).toISOString() : null,
           ends_at: endVal ? new Date(endVal).toISOString() : null,
-          vendor_fee_cents: feeCents,
+          status: 'pending',
         });
-
-        const code = event.join_code || event.joinCode || event.code || '???';
-        const shareUrl = window.location.origin + '/shop/#landing';
-        const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareUrl + '?code=' + code);
 
         $('#create-form', root).style.display = 'none';
         const resultDiv = $('#create-result', root);
         resultDiv.style.display = 'block';
         resultDiv.innerHTML = `
           <div class="center">
-            <h1>Event Created!</h1>
-            <p class="muted">Share this code with vendors</p>
-            <div class="join-code-display">${esc(code)}</div>
-            <div class="qr-container">
-              <img src="${qrUrl}" alt="QR Code" width="200" height="200">
-              <p class="muted small" style="margin-top:8px;">Scan to join</p>
-            </div>
             <div class="spacer-lg"></div>
+            <div style="font-size:3rem;margin-bottom:16px;">&#9989;</div>
+            <h1>Event Submitted!</h1>
+            <p class="muted" style="margin-bottom:24px;">Your event has been submitted for review. You'll be notified when it's approved.</p>
             <div class="card" style="text-align:left;">
-              <h3>${esc(event.name)}</h3>
+              <h3>${esc(event.name || name)}</h3>
               ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
-              ${startVal ? '<p class="muted small">' + formatDate(startVal) + '</p>' : ''}
+              ${startVal ? '<p class="muted small">' + formatDateRange(startVal, endVal) + '</p>' : ''}
             </div>
             <div class="spacer"></div>
-            <button class="btn btn-secondary" id="copy-code-btn">Copy Code</button>
-            <div class="spacer"></div>
-            <a class="link" href="#landing">Go to Event</a>
+            <button class="btn btn-primary" onclick="location.hash='#home'">Back to Home</button>
           </div>
         `;
-
-        saveSession(null, event);
-
-        $('#copy-code-btn', resultDiv).addEventListener('click', () => {
-          navigator.clipboard.writeText(code).then(() => {
-            toast('Code copied!', 'success');
-          }).catch(() => {
-            toast('Code: ' + code, 'success');
-          });
-        });
 
       } catch(e) {
         toast(e.message || 'Failed to create event', 'error');
@@ -1948,30 +2536,34 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   // INIT
   // ============================================================
   function init() {
-    // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/shop/sw.js').catch(() => {});
     }
 
-    // Load saved session
     loadSession();
 
-    // Check Stripe return
     if (checkStripeReturn()) return;
 
-    // Render initial screen
-    if (!window.location.hash || window.location.hash === '#') {
-      // If vendor has a session, go to vendor dashboard
-      if (getToken()) {
-        window.location.hash = '#vendor';
-      } else {
-        window.location.hash = '#landing';
+    // Check for ?tab=menu param to set initial tab
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'menu') {
+      state.activeTab = 'menu';
+      // If we have an event, go directly to browse/menu
+      const eventId = getEventId();
+      if (eventId && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#home')) {
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+        window.location.hash = '#browse/' + eventId + '/menu';
+        return;
       }
+    }
+
+    if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#landing') {
+      window.location.hash = '#home';
     }
     render();
   }
 
-  // Start the app
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

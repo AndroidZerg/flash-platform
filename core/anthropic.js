@@ -16,10 +16,17 @@ async function analyzeImage(base64, mediaType, promptText) {
   });
 
   const text = response.content[0].text;
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('AI returned no JSON');
-  return JSON.parse(text.substring(start, end + 1));
+  // Try array first (for menu board extraction), then object
+  const arrStart = text.indexOf('[');
+  const arrEnd = text.lastIndexOf(']');
+  const objStart = text.indexOf('{');
+  const objEnd = text.lastIndexOf('}');
+
+  if (arrStart !== -1 && arrEnd !== -1 && (objStart === -1 || arrStart < objStart)) {
+    return JSON.parse(text.substring(arrStart, arrEnd + 1));
+  }
+  if (objStart === -1 || objEnd === -1) throw new Error('AI returned no JSON');
+  return JSON.parse(text.substring(objStart, objEnd + 1));
 }
 
 module.exports = { analyzeImage };
