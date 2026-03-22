@@ -921,6 +921,67 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .code-toggle:hover { color: var(--text); }
 .code-toggle-content { display: none; margin-top: 8px; }
 .code-toggle-content.open { display: block; }
+
+/* --- TCG Browse Mode --- */
+.tcg-game-tabs { display: flex; gap: 6px; padding: 0 0 8px; overflow-x: auto; }
+.tcg-game-tab {
+  padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--card); color: var(--muted);
+  white-space: nowrap; cursor: pointer; transition: all 0.15s;
+}
+.tcg-game-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(46,196,122,0.08); }
+.tcg-listing {
+  display: flex; gap: 10px; padding: 10px; background: var(--card);
+  border-radius: var(--radius); margin-bottom: 8px; cursor: pointer;
+  border: 1px solid var(--border); transition: border-color 0.15s;
+}
+.tcg-listing:hover { border-color: var(--accent); }
+.tcg-listing img {
+  width: 80px; min-height: 112px; object-fit: contain; border-radius: 6px;
+  background: rgba(255,255,255,0.03); flex-shrink: 0;
+}
+.tcg-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tcg-name { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcg-set { color: var(--muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcg-badges { display: flex; gap: 4px; flex-wrap: wrap; margin: 2px 0; }
+.tcg-badge {
+  font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.tcg-badge-common { background: #555; color: #ccc; }
+.tcg-badge-uncommon { background: #607d8b; color: #e0e0e0; }
+.tcg-badge-rare { background: #b8860b; color: #fff; }
+.tcg-badge-holo { background: #9c27b0; color: #fff; }
+.tcg-badge-ultra { background: #7b1fa2; color: #fff; }
+.tcg-badge-secret { background: linear-gradient(135deg,#ff6b6b,#feca57,#48dbfb,#ff9ff3); color: #1a1a2e; }
+.tcg-badge-nm { background: #2e7d32; color: #fff; }
+.tcg-badge-lp { background: #1565c0; color: #fff; }
+.tcg-badge-mp { background: #f9a825; color: #1a1a2e; }
+.tcg-badge-hp { background: #e65100; color: #fff; }
+.tcg-badge-sealed { background: #00838f; color: #fff; }
+.tcg-badge-graded { background: #ad1457; color: #fff; }
+.tcg-prices { display: flex; align-items: baseline; gap: 6px; margin-top: auto; }
+.tcg-vendor-price { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+.tcg-market-price { font-size: 0.75rem; color: var(--muted); }
+.tcg-deal { font-size: 0.7rem; font-weight: 700; }
+.tcg-deal-good { color: #4caf50; }
+.tcg-deal-fair { color: var(--muted); }
+.tcg-deal-above { color: #ff9800; }
+.tcg-vendor-label { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+.tcg-below-toggle {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.8rem; color: var(--muted);
+}
+.tcg-below-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.tcg-detail-img { width: 100%; max-width: 320px; margin: 0 auto 16px; display: block; border-radius: 8px; }
+.tcg-price-bar { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card); border-radius: var(--radius); margin: 12px 0; }
+.tcg-price-bar .vendor-col { flex: 1; text-align: center; }
+.tcg-price-bar .vs { color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+.tcg-other-sellers { margin-top: 16px; }
+.tcg-other-seller {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; background: var(--card); border-radius: var(--radius);
+  margin-bottom: 6px; border: 1px solid var(--border);
+}
 </style>
 </head>
 <body>
@@ -1419,6 +1480,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     tab = tab || 'shop';
     state.activeTab = tab;
+    state.tcgGame = '';
+    state.tcgBelowMarket = false;
 
     const eventName = state.event ? state.event.name : 'Marketplace';
 
@@ -1431,6 +1494,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         <button class="tab-btn ${tab === 'shop' ? 'active' : ''}" data-tab="shop">&#128717; Shop</button>
         <button class="tab-btn ${tab === 'menu' ? 'active' : ''}" data-tab="menu">&#127828; Menu</button>
       </div>
+      <div id="tcg-tabs-area"></div>
       <div class="search-bar">
         <input type="text" id="search-input" placeholder="Search items...">
         <button class="filter-btn" id="filter-open-btn">&#9776;</button>
@@ -1468,6 +1532,39 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     doSearch();
   }
 
+  function tcgRarityBadge(rarity) {
+    if (!rarity) return '';
+    const r = rarity.toLowerCase();
+    let cls = 'tcg-badge-common';
+    if (r.includes('secret') || r.includes('illustration') || r.includes('hyper') || r.includes('ghost') || r.includes('starlight')) cls = 'tcg-badge-secret';
+    else if (r.includes('ultra') || r.includes('full art') || r.includes('special art')) cls = 'tcg-badge-ultra';
+    else if (r.includes('holo') || r.includes('rare holo') || r.includes('super')) cls = 'tcg-badge-holo';
+    else if (r.includes('rare')) cls = 'tcg-badge-rare';
+    else if (r.includes('uncommon')) cls = 'tcg-badge-uncommon';
+    else if (r.includes('sealed')) cls = 'tcg-badge-sealed';
+    return '<span class="tcg-badge ' + cls + '">' + esc(rarity) + '</span>';
+  }
+
+  function tcgCondBadge(cond) {
+    if (!cond) return '';
+    const c = cond.toUpperCase();
+    let cls = 'tcg-badge-nm';
+    if (c.startsWith('LP') || c === 'LIGHTLY PLAYED') cls = 'tcg-badge-lp';
+    else if (c.startsWith('MP') || c === 'MODERATELY PLAYED') cls = 'tcg-badge-mp';
+    else if (c.startsWith('HP') || c === 'HEAVILY PLAYED') cls = 'tcg-badge-hp';
+    else if (c.includes('SEALED')) cls = 'tcg-badge-sealed';
+    else if (c.includes('PSA') || c.includes('CGC')) cls = 'tcg-badge-graded';
+    return '<span class="tcg-badge ' + cls + '">' + esc(cond) + '</span>';
+  }
+
+  function tcgDealHtml(vendorPrice, marketPrice) {
+    if (!marketPrice || !vendorPrice) return '';
+    const pct = ((vendorPrice - marketPrice) / marketPrice * 100).toFixed(0);
+    if (pct <= -5) return '<span class="tcg-deal tcg-deal-good">\u2705 ' + Math.abs(pct) + '% below</span>';
+    if (pct <= 10) return '<span class="tcg-deal tcg-deal-fair">Fair Price</span>';
+    return '<span class="tcg-deal tcg-deal-above">\u26a0\ufe0f ' + pct + '% above</span>';
+  }
+
   async function loadBrowseItems(root, eventId, tab, query, categories, sort) {
     const gridDiv = $('#browse-grid', root);
     if (!gridDiv) return;
@@ -1476,7 +1573,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     let url = '/api/items?event_id=' + encodeURIComponent(eventId) + '&status=listed&type=' + itemType;
     if (query) url += '&q=' + encodeURIComponent(query);
     if (categories && categories.length === 1) url += '&category=' + encodeURIComponent(categories[0]);
-    if (sort && sort !== 'newest') url += '&sort=' + encodeURIComponent(sort);
+    if (sort && sort !== 'newest' && sort !== 'popular' && sort !== 'best_deal') url += '&sort=' + encodeURIComponent(sort);
+    // TCG filters
+    if (state.tcgGame) url += '&tcg_game=' + encodeURIComponent(state.tcgGame);
+    if (state.tcgBelowMarket) url += '&below_market=true';
 
     try {
       const result = await api('GET', url);
@@ -1489,6 +1589,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       if (sort === 'popular') {
         list.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
       }
+      if (sort === 'best_deal') {
+        list.sort((a, b) => {
+          const aR = a.tcg_market_price_cents ? (a.price_cents / a.tcg_market_price_cents) : 999;
+          const bR = b.tcg_market_price_cents ? (b.price_cents / b.tcg_market_price_cents) : 999;
+          return aR - bR;
+        });
+      }
 
       // Filter out items without photos (client-side safety net)
       list = list.filter(item => item.photo_url && item.photo_url.trim() !== '');
@@ -1498,6 +1605,42 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
       state.filterCategories = cats;
 
+      // Detect TCG mode: check if items have tcg_game
+      const isTcg = list.some(i => i.tcg_game);
+      state.isTcgEvent = isTcg;
+
+      // Render TCG game tabs if applicable
+      const tcgArea = $('#tcg-tabs-area', root);
+      if (tcgArea && isTcg && tab === 'shop') {
+        const games = [...new Set(list.map(i => i.tcg_game).filter(Boolean))];
+        // Also add below market toggle
+        tcgArea.innerHTML = `
+          <div class="tcg-game-tabs">
+            <div class="tcg-game-tab ${!state.tcgGame ? 'active' : ''}" data-game="">All</div>
+            ${games.includes('pokemon') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'pokemon' ? 'active' : '') + '" data-game="pokemon">Pok\u00e9mon</div>' : ''}
+            ${games.includes('magic') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'magic' ? 'active' : '') + '" data-game="magic">Magic</div>' : ''}
+            ${games.includes('yugioh') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'yugioh' ? 'active' : '') + '" data-game="yugioh">Yu-Gi-Oh!</div>' : ''}
+          </div>
+          <label class="tcg-below-toggle">
+            <input type="checkbox" id="below-market-toggle" ${state.tcgBelowMarket ? 'checked' : ''}>
+            Below Market Only
+          </label>
+        `;
+        $$('.tcg-game-tab', tcgArea).forEach(t => {
+          t.addEventListener('click', () => {
+            state.tcgGame = t.dataset.game;
+            loadBrowseItems(root, eventId, tab, $('#search-input', root)?.value?.trim() || '', state.selectedCategories, state.filterSort);
+          });
+        });
+        const bmToggle = $('#below-market-toggle', tcgArea);
+        if (bmToggle) bmToggle.addEventListener('change', () => {
+          state.tcgBelowMarket = bmToggle.checked;
+          loadBrowseItems(root, eventId, tab, $('#search-input', root)?.value?.trim() || '', state.selectedCategories, state.filterSort);
+        });
+      } else if (tcgArea) {
+        tcgArea.innerHTML = '';
+      }
+
       if (!list.length) {
         gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128270;</div><p>No items found</p><p class="small muted">' + (tab === 'menu' ? 'No food items listed yet' : 'No merchandise listed yet') + '</p></div>';
         return;
@@ -1505,6 +1648,40 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
       const isMenu = tab === 'menu';
 
+      // TCG layout: horizontal list cards
+      if (isTcg && !isMenu) {
+        gridDiv.innerHTML = list.map(item => {
+          const imgUrl = item.tcg_image_url || item.photo_url || '';
+          const vendorName = item.vendors ? item.vendors.display_name : '';
+          const booth = item.vendors ? item.vendors.booth_location : '';
+          return `
+            <div class="tcg-listing" data-id="${esc(item.id)}">
+              <img src="${esc(imgUrl)}" alt="" onerror="this.style.opacity='0.3'">
+              <div class="tcg-info">
+                <div class="tcg-name">${esc(item.title || 'Unknown Card')}</div>
+                <div class="tcg-set">${esc(item.tcg_set_name || '')}${item.tcg_card_number ? ' \u00b7 #' + esc(item.tcg_card_number) : ''}</div>
+                <div class="tcg-badges">
+                  ${tcgRarityBadge(item.tcg_rarity)}
+                  ${tcgCondBadge(item.tcg_condition)}
+                </div>
+                <div class="tcg-prices">
+                  <span class="tcg-vendor-price">${cents(item.price_cents)}</span>
+                  ${item.tcg_market_price_cents ? '<span class="tcg-market-price">Mkt: ' + cents(item.tcg_market_price_cents) + '</span>' : ''}
+                  ${tcgDealHtml(item.price_cents, item.tcg_market_price_cents)}
+                </div>
+                <div class="tcg-vendor-label">${esc(vendorName)}${booth ? ' \u00b7 ' + esc(booth) : ''}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        $$('.tcg-listing', gridDiv).forEach(el => {
+          el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+        });
+        return;
+      }
+
+      // Standard grid layout
       gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => {
         const pUrl = photoUrl(item);
         const vendorName = item.vendors ? item.vendors.display_name : '';
@@ -1542,12 +1719,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     backdrop.className = 'filter-modal-backdrop';
 
     const cats = state.filterCategories;
+    const isTcg = state.isTcgEvent && state.activeTab === 'shop';
     const sortOptions = [
       { value: 'newest', label: 'Newest' },
       { value: 'price_asc', label: 'Price: Low to High' },
       { value: 'price_desc', label: 'Price: High to Low' },
       { value: 'popular', label: 'Popular' },
     ];
+    if (isTcg) {
+      sortOptions.push({ value: 'market_value', label: 'Market Value' });
+      sortOptions.push({ value: 'best_deal', label: 'Best Deal' });
+    }
 
     backdrop.innerHTML = `
       <div class="filter-modal">
@@ -1683,6 +1865,53 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
     `;
 
+    // TCG detail view
+    if (item.tcg_game) {
+      const tcgImg = item.tcg_image_url || pUrl;
+      const mktCents = item.tcg_market_price_cents;
+      const pricePct = mktCents ? ((item.price_cents - mktCents) / mktCents * 100).toFixed(0) : null;
+
+      let priceBarHtml = '';
+      if (mktCents) {
+        priceBarHtml = `
+          <div class="tcg-price-bar">
+            <div class="vendor-col">
+              <div class="muted small">Vendor Price</div>
+              <div style="font-size:1.3rem;font-weight:800;">${cents(item.price_cents)}</div>
+            </div>
+            <div class="vs">vs</div>
+            <div class="vendor-col">
+              <div class="muted small">Market Price</div>
+              <div style="font-size:1.3rem;font-weight:800;color:var(--muted);">${cents(mktCents)}</div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-bottom:12px;">
+            ${tcgDealHtml(item.price_cents, mktCents)}
+          </div>
+        `;
+      }
+
+      contentDiv.innerHTML = `
+        ${tcgImg ? '<img class="tcg-detail-img" src="' + esc(tcgImg) + '" alt="">' : ''}
+        <h1 style="margin-bottom:4px;">${esc(item.title || 'Unknown Card')}</h1>
+        <div class="muted small" style="margin-bottom:8px;">
+          ${item.tcg_set_name ? esc(item.tcg_set_name) : ''}${item.tcg_card_number ? ' &middot; #' + esc(item.tcg_card_number) : ''}
+        </div>
+        <div style="margin-bottom:8px;">${tcgRarityBadge(item.tcg_rarity)} ${tcgCondBadge(item.tcg_condition)}</div>
+        ${priceBarHtml}
+        ${item.description ? '<div class="card"><p class="small">' + esc(item.description) + '</p></div>' : ''}
+        <hr class="divider">
+        ${vendorSection}
+        <div id="tcg-other-sellers"></div>
+      `;
+
+      // Load other sellers for this card
+      if (item.tcg_card_id) {
+        loadOtherSellers(contentDiv, item);
+      }
+      return;
+    }
+
     contentDiv.innerHTML = `
       ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
       <h1 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h1>
@@ -1699,6 +1928,48 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <hr class="divider">
       ${vendorSection}
     `;
+  }
+
+  // ---------- TCG Other Sellers ----------
+  async function loadOtherSellers(contentDiv, item) {
+    const container = $('#tcg-other-sellers', contentDiv);
+    if (!container || !item.tcg_card_id) return;
+
+    try {
+      // Find other items with same base card ID (strip -graded suffix)
+      const baseCardId = item.tcg_card_id.replace(/-graded$/, '');
+      const others = state.browseItems.filter(i =>
+        i.id !== item.id && i.tcg_card_id && i.tcg_card_id.replace(/-graded$/, '') === baseCardId
+      );
+
+      if (!others.length) return;
+
+      container.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px;">${others.length} other vendor${others.length > 1 ? 's' : ''} selling this card</div>
+        ${others.map(o => {
+          const vName = o.vendors ? o.vendors.display_name : '';
+          const booth = o.vendors ? o.vendors.booth_location : '';
+          return `
+            <div class="tcg-other-seller" data-id="${esc(o.id)}" style="cursor:pointer;">
+              <div>
+                <div style="font-weight:600;font-size:0.85rem;">${esc(vName)}</div>
+                <div class="muted" style="font-size:0.75rem;">${esc(booth)} &middot; ${esc(o.tcg_condition || '')}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:800;">${cents(o.price_cents)}</div>
+                ${o.tcg_market_price_cents ? '<div style="font-size:0.7rem;">' + tcgDealHtml(o.price_cents, o.tcg_market_price_cents) + '</div>' : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      `;
+
+      $$('.tcg-other-seller', container).forEach(el => {
+        el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+      });
+    } catch(e) {
+      console.error('Other sellers error:', e);
+    }
   }
 
   // ---------- #join/:eventId (Vendor Onboarding) ----------

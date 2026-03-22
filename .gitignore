@@ -11,6 +11,8 @@ setup-supabase.js
 seed-events.js
 seed-vendors.js
 seed-cross-items.js
+seed-tcg.js
+seed-tcg-extra.js
 
 # OS / editor
 .DS_Store

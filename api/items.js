@@ -82,7 +82,8 @@ router.post('/items', upload.single('photo'), async (req, res) => {
 // GET /api/items — Browse items
 router.get('/items', async (req, res) => {
   try {
-    const { event_id, status, q, category, min_price, max_price, sort, vendor_id, type } = req.query;
+    const { event_id, status, q, category, min_price, max_price, sort, vendor_id, type,
+            tcg_game, tcg_rarity, tcg_condition, below_market } = req.query;
 
     let query = supabase.from('items').select('*, vendors(display_name, booth_location, logo_url)');
 
@@ -95,15 +96,25 @@ router.get('/items', async (req, res) => {
     if (min_price) query = query.gte('price_cents', parseInt(min_price));
     if (max_price) query = query.lte('price_cents', parseInt(max_price));
     if (q) query = query.textSearch('search_text', q, { type: 'websearch' });
+    // TCG filters
+    if (tcg_game) query = query.eq('tcg_game', tcg_game);
+    if (tcg_rarity) query = query.eq('tcg_rarity', tcg_rarity);
+    if (tcg_condition) query = query.eq('tcg_condition', tcg_condition);
+    // below_market filtering done in post-processing below
     // Exclude items without photos
     query = query.not('photo_url', 'is', null).neq('photo_url', '');
 
     if (sort === 'price_asc') query = query.order('price_cents', { ascending: true });
     else if (sort === 'price_desc') query = query.order('price_cents', { ascending: false });
+    else if (sort === 'market_value') query = query.order('tcg_market_price_cents', { ascending: false, nullsFirst: false });
     else query = query.order('listed_at', { ascending: false, nullsFirst: false });
 
-    const { data, error } = await query;
+    let { data, error } = await query;
     if (error) return res.status(400).json({ error: error.message });
+    // Below market filter: compare price_cents < tcg_market_price_cents
+    if (below_market === 'true' && data) {
+      data = data.filter(i => i.tcg_market_price_cents && i.price_cents < i.tcg_market_price_cents);
+    }
     res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -226,6 +237,22 @@ router.delete('/items/:id', async (req, res) => {
 
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/items/card/:tcg_card_id — All vendor listings for a specific card
+router.get('/items/card/:tcg_card_id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('items')
+      .select('*, vendors(display_name, booth_location, logo_url)')
+      .eq('tcg_card_id', req.params.tcg_card_id)
+      .in('status', ['listed', 'sold'])
+      .order('price_cents', { ascending: true });
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
