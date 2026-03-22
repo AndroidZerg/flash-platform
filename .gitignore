@@ -8,6 +8,7 @@ node_modules/
 
 # Setup scripts with hardcoded credentials
 setup-supabase.js
+seed-events.js
 
 # OS / editor
 .DS_Store
