@@ -56,6 +56,12 @@ router.post('/items', upload.single('photo'), async (req, res) => {
 
     const search_text = buildSearchText(ai_description);
 
+    // Detect type mismatch: vendor chose product but AI sees food
+    const foodIndicators = ['appetizer', 'entree', 'dessert', 'drink', 'snack', 'side',
+      'dish', 'recipe', 'cuisine', 'cooked', 'fried', 'grilled', 'baked', 'roasted'];
+    const aiText = JSON.stringify(ai_description).toLowerCase();
+    const type_mismatch = itemType === 'product' && foodIndicators.some(w => aiText.includes(w));
+
     const { data, error } = await supabase.from('items').insert({
       event_id, vendor_id, type: itemType,
       photo_url, thumbnail_url, ai_description,
@@ -63,7 +69,7 @@ router.post('/items', upload.single('photo'), async (req, res) => {
       description: ai_description.description || null,
       category: ai_description.category || null,
       condition: ai_description.condition || null,
-      search_text, status: 'draft'
+      search_text, status: 'draft', type_mismatch
     }).select().single();
 
     if (error) return res.status(400).json({ error: error.message });
@@ -76,18 +82,21 @@ router.post('/items', upload.single('photo'), async (req, res) => {
 // GET /api/items — Browse items
 router.get('/items', async (req, res) => {
   try {
-    const { event_id, status, q, category, min_price, max_price, sort, vendor_id } = req.query;
+    const { event_id, status, q, category, min_price, max_price, sort, vendor_id, type } = req.query;
 
-    let query = supabase.from('items').select('*, vendors(display_name, booth_location)');
+    let query = supabase.from('items').select('*, vendors(display_name, booth_location, logo_url)');
 
     if (event_id) query = query.eq('event_id', event_id);
     if (vendor_id) query = query.eq('vendor_id', vendor_id);
+    if (type) query = query.eq('type', type);
     if (status) query = query.eq('status', status);
     else query = query.in('status', ['listed', 'sold']);
     if (category) query = query.eq('category', category);
     if (min_price) query = query.gte('price_cents', parseInt(min_price));
     if (max_price) query = query.lte('price_cents', parseInt(max_price));
     if (q) query = query.textSearch('search_text', q, { type: 'websearch' });
+    // Exclude items without photos
+    query = query.not('photo_url', 'is', null).neq('photo_url', '');
 
     if (sort === 'price_asc') query = query.order('price_cents', { ascending: true });
     else if (sort === 'price_desc') query = query.order('price_cents', { ascending: false });
@@ -121,7 +130,7 @@ router.put('/items/:id', async (req, res) => {
     }
 
     const { title, description, category, condition, price_cents, price_note, vendor_notes, status,
-            optional_proteins, spice_options } = req.body;
+            optional_proteins, spice_options, type: newType, type_mismatch } = req.body;
     const updates = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
@@ -131,6 +140,8 @@ router.put('/items/:id', async (req, res) => {
     if (price_note !== undefined) updates.price_note = price_note;
     if (vendor_notes !== undefined) updates.vendor_notes = vendor_notes;
     if (optional_proteins !== undefined) updates.optional_proteins = optional_proteins;
+    if (newType !== undefined) updates.type = newType;
+    if (type_mismatch !== undefined) updates.type_mismatch = type_mismatch;
     if (spice_options !== undefined) updates.spice_options = spice_options;
     if (status !== undefined) {
       updates.status = status;

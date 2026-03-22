@@ -660,6 +660,22 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   margin-bottom: 16px;
 }
 
+/* --- Type Mismatch Banner --- */
+.mismatch-banner {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: #ffc107;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.mismatch-banner button { margin-top: 4px; }
+
 /* --- Collapsible --- */
 .collapsible-header {
   display: flex;
@@ -1474,6 +1490,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         list.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
       }
 
+      // Filter out items without photos (client-side safety net)
+      list = list.filter(item => item.photo_url && item.photo_url.trim() !== '');
+
       state.browseItems = list;
 
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
@@ -1488,15 +1507,16 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
       gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => {
         const pUrl = photoUrl(item);
+        const vendorName = item.vendors ? item.vendors.display_name : '';
         const diets = isMenu ? dietaryPillsHtml(item) : '';
         const spice = isMenu ? spiceLevelHtml(item) : '';
         return `
           <div class="item-card" data-id="${esc(item.id)}">
-            <img src="${pUrl ? esc(pUrl) : placeholderImg()}" alt="" onerror="this.src='${placeholderImg()}'">
+            <img src="${pUrl ? esc(pUrl) : placeholderImg()}" alt="" onerror="this.closest('.item-card').style.display='none'">
             <div class="item-info">
               <div class="item-title">${esc(item.title || 'Untitled')}</div>
               <div class="item-price">${cents(item.price_cents)}</div>
-              ${item.vendor_name ? '<div class="item-vendor">' + esc(item.vendor_name) + '</div>' : ''}
+              ${vendorName ? '<div class="item-vendor">' + esc(vendorName) + '</div>' : ''}
               ${diets ? '<div class="item-diets">' + diets + '</div>' : ''}
               ${spice ? '<div style="margin-top:4px;">' + spice + '</div>' : ''}
               ${isMenu && item.optional_proteins ? '<div class="muted" style="font-size:0.7rem;margin-top:2px;">+ ' + esc(item.optional_proteins) + '</div>' : ''}
@@ -1648,10 +1668,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     const spice = spiceLevelHtml(item);
 
     let vendorSection = '';
-    const vendorLogo = item.vendor_logo_url;
-    const vendorName = item.vendor_name || 'Vendor';
-    const vendorInitial = vendorName[0].toUpperCase();
-    const boothLoc = item.booth_location || item.vendor_booth_location || '';
+    const vendorLogo = item.vendors ? item.vendors.logo_url : item.vendor_logo_url;
+    const vendorName = item.vendors ? item.vendors.display_name : (item.vendor_name || 'Vendor');
+    const vendorInitial = vendorName ? vendorName[0].toUpperCase() : 'V';
+    const boothLoc = item.vendors ? item.vendors.booth_location : (item.booth_location || '');
 
     vendorSection = `
       <div class="vendor-info-card">
@@ -1962,6 +1982,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.currentItem = item;
     const isFood = item.type === 'food';
     const pUrl = photoUrl(item);
+    const mismatchBanner = item.type_mismatch ? `
+      <div class="mismatch-banner" id="mismatch-banner">
+        <div>&#9888;&#65039; This looks like a food item. Did you mean to list it under Menu instead?</div>
+        <button class="btn btn-sm btn-accent" id="switch-type-btn">Switch to Food Item</button>
+        <button class="btn btn-sm btn-outline" id="dismiss-mismatch-btn">Dismiss</button>
+      </div>` : '';
 
     // Find item index in vendor's draft list for prior/next navigation
     const editableItems = state.items.filter(i => i.status !== 'sold' && i.status !== 'removed');
@@ -1980,6 +2006,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     if (isFood) {
       contentDiv.innerHTML = `
+        ${mismatchBanner}
         <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
           ${pUrl ? '<img class="edit-photo-small" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
           <div style="flex:1;">
@@ -2030,6 +2057,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       `;
     } else {
       contentDiv.innerHTML = `
+        ${mismatchBanner}
         <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
           ${pUrl ? '<img class="edit-photo-small" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
           <div style="flex:1;">
@@ -2087,6 +2115,31 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       toggleBtn.addEventListener('click', () => {
         toggleBtn.classList.toggle('open');
         toggleContent.classList.toggle('open');
+      });
+    }
+
+    // Type mismatch banner handlers
+    const switchBtn = $('#switch-type-btn', contentDiv);
+    const dismissBtn = $('#dismiss-mismatch-btn', contentDiv);
+    if (switchBtn) {
+      switchBtn.addEventListener('click', async () => {
+        try {
+          await api('PUT', '/api/items/' + item.id, { session_token: getToken(), type: 'food', type_mismatch: false });
+          item.type = 'food';
+          item.type_mismatch = false;
+          toast('Switched to food item', 'success');
+          loadEditItem(root, itemId);
+        } catch(e) { toast(e.message, 'error'); }
+      });
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', async () => {
+        try {
+          await api('PUT', '/api/items/' + item.id, { session_token: getToken(), type_mismatch: false });
+          item.type_mismatch = false;
+          const banner = $('#mismatch-banner', contentDiv);
+          if (banner) banner.remove();
+        } catch(e) { toast(e.message, 'error'); }
       });
     }
 
