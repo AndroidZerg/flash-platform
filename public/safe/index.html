@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#e63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FlashSafe</title>
+<link rel="manifest" href="/safe/manifest.json">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --text: #ffffff;
+  --muted: #8892b0;
+  --red: #e63946;
+  --red-dark: #c1121f;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --max-w: 480px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: var(--max-w);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Header ---------- */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+header h1 { font-size: 20px; font-weight: 700; }
+header h1 span { color: var(--red); }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.icon-btn {
+  background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; padding: 4px;
+}
+.icon-btn:hover { color: var(--text); }
+
+/* ---------- Screens ---------- */
+.screen { display: none; flex: 1; padding: 16px; padding-bottom: 32px; overflow-y: auto; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 24px; border: none; border-radius: var(--radius); font-size: 16px;
+  font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-red { background: var(--red); color: #fff; }
+.btn-red:hover { background: var(--red-dark); }
+.btn-outline { background: transparent; border: 2px solid var(--red); color: var(--red); }
+.btn-outline:hover { background: rgba(230,57,70,0.1); }
+.btn-muted { background: rgba(255,255,255,0.08); color: var(--muted); }
+.btn-muted:hover { background: rgba(255,255,255,0.14); }
+.btn-danger { background: transparent; border: 2px solid var(--red); color: var(--red); }
+.btn-block { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); cursor: pointer; transition: transform 0.1s;
+}
+.card:hover { transform: translateY(-2px); }
+.card-grid { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- Forms ---------- */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06); color: var(--text); font-size: 15px;
+  outline: none; transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--red);
+}
+.form-group select option { background: var(--card); color: var(--text); }
+
+/* ---------- Profile card on home ---------- */
+.profile-card { display: flex; align-items: center; gap: 14px; }
+.profile-card .icon { font-size: 36px; flex-shrink: 0; }
+.profile-card .info { flex: 1; min-width: 0; }
+.profile-card .info h3 { font-size: 16px; font-weight: 600; }
+.profile-card .info p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.profile-card .thumb {
+  width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+}
+
+/* ---------- Emergency button ---------- */
+.emergency-btn {
+  background: var(--red); color: #fff; border: none; border-radius: var(--radius);
+  padding: 20px; font-size: 18px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 0 0 20px rgba(230,57,70,0.35); transition: transform 0.1s;
+  margin-bottom: 20px; letter-spacing: 0.5px;
+}
+.emergency-btn:active { transform: scale(0.97); }
+
+/* ---------- Empty state ---------- */
+.empty-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 12px; padding: 32px 16px;
+}
+.empty-state .big-icon { font-size: 64px; }
+.empty-state h2 { font-size: 20px; }
+.empty-state p { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 280px; }
+
+/* ---------- Snap list ---------- */
+.snap-item { display: flex; gap: 12px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 8px; }
+.snap-item img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.snap-item .snap-info { flex: 1; min-width: 0; }
+.snap-item .snap-info p { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
+.snap-item .snap-info .snap-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ---------- Camera / Processing ---------- */
+.camera-preview { width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius); margin: 16px 0; }
+.loading-overlay {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+}
+.spinner {
+  width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.15);
+  border-top-color: var(--red); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Analysis result card ---------- */
+.analysis-card { background: var(--card); border-radius: var(--radius); padding: 20px; }
+.analysis-card h3 { font-size: 17px; margin-bottom: 12px; }
+.analysis-card .field { margin-bottom: 8px; }
+.analysis-card .field-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.analysis-card .field-value { font-size: 15px; margin-top: 2px; }
+.analysis-card .summary { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.analysis-card .summary p { font-size: 14px; line-height: 1.6; color: var(--muted); }
+
+/* ---------- Emergency mode ---------- */
+.emergency-mode {
+  background: #ffffff !important; color: #1a1a2e !important;
+}
+.emergency-mode .screen { color: #1a1a2e; }
+.emergency-mode header { border-bottom-color: rgba(0,0,0,0.1); }
+.emergency-mode header h1 { color: var(--red); }
+.emergency-mode .icon-btn { color: #1a1a2e; }
+
+.em-title { color: var(--red); font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 16px; letter-spacing: 1px; }
+.em-subtitle { font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center; }
+
+.em-profile-check {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius);
+  border: 2px solid #e0e0e0; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s;
+}
+.em-profile-check.selected { border-color: var(--red); background: rgba(230,57,70,0.06); }
+.em-profile-check input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--red); flex-shrink: 0; }
+.em-profile-check .icon { font-size: 28px; }
+.em-profile-check .info h4 { font-size: 16px; font-weight: 600; }
+.em-profile-check img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
+
+.em-person-block {
+  border: 3px solid var(--red); border-radius: var(--radius); padding: 20px;
+  margin-bottom: 20px; background: #fff;
+}
+.em-person-block h3 { color: var(--red); font-size: 22px; margin-bottom: 12px; }
+.em-script {
+  font-size: 20px; line-height: 1.6; font-weight: 500; padding: 16px;
+  background: #fff5f5; border-radius: 8px; border-left: 4px solid var(--red); margin-bottom: 16px;
+}
+.em-bullets { list-style: none; padding: 0; }
+.em-bullets li { font-size: 17px; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; gap: 8px; }
+.em-bullets li strong { color: var(--red); min-width: 120px; }
+
+.em-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.em-btn {
+  padding: 16px; border: none; border-radius: var(--radius); font-size: 17px;
+  font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.em-btn-red { background: var(--red); color: #fff; }
+.em-btn-outline { background: #fff; border: 2px solid var(--red); color: var(--red); }
+.em-btn-911 { background: #1a1a2e; color: #fff; font-size: 20px; letter-spacing: 1px; }
+
+/* ---------- Settings ---------- */
+.settings-section { margin-bottom: 28px; }
+.settings-section h3 { font-size: 15px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px;
+  background: var(--card); border-radius: var(--radius); margin-bottom: 8px;
+}
+.settings-row label { font-size: 15px; }
+.settings-row input[type="time"] {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 15px;
+}
+.about-text { color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; padding: 20px; }
+
+/* ---------- Back nav ---------- */
+.back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer; }
+.back-row span { font-size: 14px; color: var(--muted); }
+
+/* ---------- Profile detail header ---------- */
+.profile-header { text-align: center; margin-bottom: 20px; }
+.profile-header .type-icon { font-size: 56px; }
+.profile-header h2 { font-size: 22px; margin-top: 8px; }
+.profile-header .type-label { font-size: 13px; color: var(--muted); }
+
+.detail-fields { margin-bottom: 20px; }
+.detail-field { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.detail-field .label { color: var(--muted); font-size: 14px; }
+.detail-field .value { font-size: 14px; text-align: right; }
+
+.section-title { font-size: 15px; color: var(--muted); margin: 20px 0 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ---------- Misc ---------- */
+.gap-12 { gap: 12px; }
+.mt-12 { margin-top: 12px; }
+.mt-20 { margin-top: 20px; }
+.flex-row { display: flex; }
+.hidden { display: none !important; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 8px;
+  font-size: 14px; box-shadow: var(--shadow); z-index: 1000;
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(12px); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="mainHeader">
+    <h1><span>Flash</span>Safe</h1>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="navigate('settings')" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen">
+    <button class="emergency-btn" onclick="navigate('emergency')">&#128680; EMERGENCY MODE</button>
+    <div id="homeProfiles" class="card-grid"></div>
+    <div id="homeEmpty" class="empty-state hidden">
+      <div class="big-icon">&#128737;&#65039;</div>
+      <h2>Welcome to FlashSafe</h2>
+      <p>Add the people and pets you want to keep safe. Take regular snaps so you always have a current description ready.</p>
+    </div>
+    <button class="btn btn-red btn-block mt-20" onclick="navigate('add')">+ Add Person / Pet</button>
+  </div>
+
+  <!-- ADD PROFILE -->
+  <div id="screen-add" class="screen">
+    <div class="back-row" onclick="navigate('home')"><span>&#8592; Back</span></div>
+    <h2 style="margin-bottom:20px">New Profile</h2>
+    <form id="addForm" onsubmit="return handleAddProfile(event)">
+      <div class="form-group">
+        <label>Type *</label>
+        <select id="addType" required onchange="updateFormLabels()">
+          <option value="">Select...</option>
+          <option value="child">Child</option>
+          <option value="teen">Teen</option>
+          <option value="adult">Adult</option>
+          <option value="elder">Elder</option>
+          <option value="dog">Dog</option>
+          <option value="cat">Cat</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" id="addName" required placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>Date of Birth</label>
+        <input type="date" id="addDob">
+      </div>
+      <div class="form-group">
+        <label>Height</label>
+        <input type="text" id="addHeight" placeholder="e.g. 3'6&quot; or 42 inches">
+      </div>
+      <div class="form-group">
+        <label id="addEthnicityLabel">Ethnicity / Breed</label>
+        <input type="text" id="addEthnicity" placeholder="">
+      </div>
+      <div class="form-group">
+        <label>Eye Color</label>
+        <input type="text" id="addEyeColor" placeholder="e.g. Brown">
+      </div>
+      <div class="form-group" id="guardianGroup">
+        <label>Guardian Name</label>
+        <input type="text" id="addGuardianName" placeholder="Parent or caretaker name">
+      </div>
+      <div class="form-group" id="guardianPhoneGroup">
+        <label>Guardian Phone</label>
+        <input type="tel" id="addGuardianPhone" placeholder="(555) 123-4567">
+      </div>
+      <button type="submit" class="btn btn-red btn-block" id="addSubmitBtn">Save Profile</button>
+    </form>
+  </div>
+
+  <!-- PROFILE DETAIL -->
+  <div id="screen-profile" class="screen">
+    <div class="back-row" onclick="navigate('home')"><span>&#8592; Back</span></div>
+    <div id="profileContent"></div>
+  </div>
+
+  <!-- CAMERA -->
+  <div id="screen-camera" class="screen">
+    <div class="back-row" onclick="goBackFromCamera()"><span>&#8592; Back</span></div>
+    <h2 style="margin-bottom:8px">Take a Snap</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Capture what they look like right now — clothing, accessories, everything.</p>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotoSelected(event)" style="display:none">
+    <button class="btn btn-outline btn-block" onclick="document.getElementById('cameraInput').click()" id="selectPhotoBtn">&#128247; Select or Take Photo</button>
+    <img id="cameraPreview" class="camera-preview hidden">
+    <button class="btn btn-red btn-block mt-12 hidden" id="analyzeBtn" onclick="handleAnalyze()">Analyze Photo</button>
+    <div id="cameraLoading" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p style="font-size:16px;font-weight:600">AI is analyzing...</p>
+      <p style="color:var(--muted);font-size:13px">Identifying clothing, features, and details</p>
+    </div>
+  </div>
+
+  <!-- PROCESSING / RESULTS -->
+  <div id="screen-processing" class="screen">
+    <div class="back-row" onclick="goBackFromProcessing()"><span>&#8592; Back</span></div>
+    <h2 style="margin-bottom:16px">Analysis Result</h2>
+    <div id="processingContent"></div>
+  </div>
+
+  <!-- EMERGENCY -->
+  <div id="screen-emergency" class="screen">
+    <div id="emergencyContent"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="screen-settings" class="screen">
+    <div class="back-row" onclick="navigate('home')"><span>&#8592; Back</span></div>
+    <h2 style="margin-bottom:24px">Settings</h2>
+    <div class="settings-section">
+      <h3>Reminders</h3>
+      <div class="settings-row">
+        <label>Daily snap reminder</label>
+        <input type="time" id="reminderTime" onchange="saveReminderTime(this.value)">
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:4px;padding:0 4px">Get a notification to take a fresh snap of your profiles.</p>
+    </div>
+    <div class="settings-section">
+      <h3>Data</h3>
+      <button class="btn btn-danger btn-block" onclick="handleDeleteAllData()">Delete All Data</button>
+    </div>
+    <div class="settings-section">
+      <p class="about-text">FlashSafe &mdash; Be prepared for emergencies.<br><br>Take regular photos so you always have an up-to-date description ready if someone goes missing.<br><br>Stay safe. Stay prepared.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   FlashSafe — Complete SPA
+   ================================================================ */
+
+// ---- State ----
+let ownerSession = localStorage.getItem('flashsafe_owner_session');
+if (!ownerSession) {
+  ownerSession = crypto.randomUUID();
+  localStorage.setItem('flashsafe_owner_session', ownerSession);
+}
+
+let profiles = [];
+let snapsCache = {};          // profile_id -> [snaps]
+let currentProfileId = null;
+let currentSnapId = null;
+let currentPhotoFile = null;
+let wakeLock = null;
+
+const TYPE_ICONS = {
+  child: '\u{1F476}', teen: '\u{1F9D1}', adult: '\u{1F464}', elder: '\u{1F474}',
+  dog: '\u{1F415}', cat: '\u{1F408}', other: '\u2753'
+};
+
+const PET_TYPES = ['dog', 'cat'];
+const GUARDIAN_TYPES = ['child', 'teen', 'elder'];
+
+// ---- API helpers ----
+const API = '/api/safe';
+
+async function api(path, opts = {}) {
+  const url = API + path;
+  try {
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`API ${res.status}: ${errBody}`);
+    }
+    return res.json();
+  } catch (e) {
+    console.error('API Error:', e);
+    throw e;
+  }
+}
+
+async function loadProfiles() {
+  try {
+    profiles = await api('/profiles?owner=' + encodeURIComponent(ownerSession));
+  } catch {
+    profiles = [];
+  }
+}
+
+async function loadSnaps(profileId) {
+  try {
+    const snaps = await api('/snaps?profile_id=' + encodeURIComponent(profileId));
+    snapsCache[profileId] = snaps;
+    return snaps;
+  } catch {
+    snapsCache[profileId] = [];
+    return [];
+  }
+}
+
+// ---- Routing ----
+function navigate(screen, param) {
+  if (screen === 'profile' && param) {
+    window.location.hash = '#profile/' + param;
+  } else if (screen === 'camera' && param) {
+    window.location.hash = '#camera/' + param;
+  } else if (screen === 'processing' && param) {
+    window.location.hash = '#processing/' + param;
+  } else {
+    window.location.hash = '#' + screen;
+  }
+}
+
+async function handleRoute() {
+  const hash = window.location.hash || '#home';
+  const parts = hash.slice(1).split('/');
+  const screen = parts[0] || 'home';
+  const param = parts[1] || null;
+
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+  // Exit emergency mode styling
+  if (screen !== 'emergency') {
+    document.getElementById('app').classList.remove('emergency-mode');
+    releaseWakeLock();
+  }
+
+  switch (screen) {
+    case 'home':
+      await renderHome();
+      break;
+    case 'add':
+      renderAdd();
+      break;
+    case 'profile':
+      currentProfileId = param;
+      await renderProfile(param);
+      break;
+    case 'camera':
+      currentProfileId = param;
+      renderCamera();
+      break;
+    case 'processing':
+      currentSnapId = param;
+      await renderProcessing(param);
+      break;
+    case 'emergency':
+      await renderEmergency();
+      break;
+    case 'settings':
+      renderSettings();
+      break;
+    default:
+      await renderHome();
+  }
+}
+
+function showScreen(id) {
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ---- HOME ----
+async function renderHome() {
+  await loadProfiles();
+  const container = document.getElementById('homeProfiles');
+  const empty = document.getElementById('homeEmpty');
+
+  if (profiles.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+    // Load latest snaps for thumbnails
+    const snapPromises = profiles.map(p => loadSnaps(p.id));
+    await Promise.all(snapPromises);
+
+    container.innerHTML = profiles.map(p => {
+      const snaps = snapsCache[p.id] || [];
+      const lastSnap = snaps.length > 0 ? snaps[snaps.length - 1] : null;
+      const thumbHtml = lastSnap && lastSnap.photo_url
+        ? `<img class="thumb" src="${escapeAttr(lastSnap.photo_url)}" alt="snap">`
+        : '';
+      const snapInfo = snaps.length > 0
+        ? `${snaps.length} snap${snaps.length > 1 ? 's' : ''}`
+        : 'No snaps yet';
+      return `
+        <div class="card profile-card" onclick="navigate('profile','${p.id}')">
+          <div class="icon">${TYPE_ICONS[p.type] || '\u2753'}</div>
+          <div class="info">
+            <h3>${escapeHtml(p.name)}</h3>
+            <p>${escapeHtml(p.type)} &middot; ${snapInfo}</p>
+          </div>
+          ${thumbHtml}
+        </div>
+      `;
+    }).join('');
+  }
+  showScreen('home');
+}
+
+// ---- ADD PROFILE ----
+function renderAdd() {
+  document.getElementById('addForm').reset();
+  updateFormLabels();
+  showScreen('add');
+}
+
+function updateFormLabels() {
+  const type = document.getElementById('addType').value;
+  const ethLabel = document.getElementById('addEthnicityLabel');
+  const guardianGroup = document.getElementById('guardianGroup');
+  const guardianPhoneGroup = document.getElementById('guardianPhoneGroup');
+
+  if (PET_TYPES.includes(type)) {
+    ethLabel.textContent = 'Breed';
+    document.getElementById('addEthnicity').placeholder = 'e.g. Golden Retriever';
+  } else {
+    ethLabel.textContent = 'Ethnicity';
+    document.getElementById('addEthnicity').placeholder = 'e.g. Hispanic, Asian, Caucasian';
+  }
+
+  if (GUARDIAN_TYPES.includes(type)) {
+    guardianGroup.classList.remove('hidden');
+    guardianPhoneGroup.classList.remove('hidden');
+  } else {
+    guardianGroup.classList.add('hidden');
+    guardianPhoneGroup.classList.add('hidden');
+  }
+}
+
+async function handleAddProfile(e) {
+  e.preventDefault();
+  const btn = document.getElementById('addSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const body = {
+    owner_session: ownerSession,
+    type: document.getElementById('addType').value,
+    name: document.getElementById('addName').value.trim(),
+    date_of_birth: document.getElementById('addDob').value || null,
+    height: document.getElementById('addHeight').value.trim() || null,
+    ethnicity: document.getElementById('addEthnicity').value.trim() || null,
+    eye_color: document.getElementById('addEyeColor').value.trim() || null,
+    guardian_name: document.getElementById('addGuardianName').value.trim() || null,
+    guardian_phone: document.getElementById('addGuardianPhone').value.trim() || null,
+  };
+
+  try {
+    const profile = await api('/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    toast('Profile created');
+    navigate('profile', profile.id);
+  } catch (err) {
+    toast(err.message || 'Error creating profile');
+    console.error('Profile create error:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Profile';
+  }
+}
+
+// ---- PROFILE DETAIL ----
+async function renderProfile(id) {
+  const content = document.getElementById('profileContent');
+  content.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  showScreen('profile');
+
+  await loadProfiles();
+  const profile = profiles.find(p => p.id === id);
+  if (!profile) {
+    content.innerHTML = '<p>Profile not found.</p>';
+    return;
+  }
+
+  const snaps = await loadSnaps(id);
+  currentProfileId = id;
+
+  const isPet = PET_TYPES.includes(profile.type);
+  const needsGuardian = GUARDIAN_TYPES.includes(profile.type);
+  const ethLabel = isPet ? 'Breed' : 'Ethnicity';
+
+  const dobDisplay = profile.date_of_birth
+    ? new Date(profile.date_of_birth).toLocaleDateString()
+    : 'Not set';
+
+  let snapsHtml = '';
+  if (snaps.length > 0) {
+    snapsHtml = snaps.map(s => {
+      const desc = s.ai_description || {};
+      const summary = desc.summary || desc.full_summary || 'No description';
+      const dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+      const photoHtml = s.photo_url ? `<img src="${escapeAttr(s.photo_url)}" alt="snap">` : '';
+      return `
+        <div class="snap-item" onclick="navigate('processing','${s.id}')" style="cursor:pointer">
+          ${photoHtml}
+          <div class="snap-info">
+            <p>${escapeHtml(truncate(summary, 120))}</p>
+            <div class="snap-date">${dateStr}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    snapsHtml = '<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">No snaps yet. Take one to get an AI description.</p>';
+  }
+
+  content.innerHTML = `
+    <div class="profile-header">
+      <div class="type-icon">${TYPE_ICONS[profile.type] || '\u2753'}</div>
+      <h2>${escapeHtml(profile.name)}</h2>
+      <div class="type-label">${escapeHtml(profile.type)}</div>
+    </div>
+
+    <div class="detail-fields" id="profileFields">
+      <div class="detail-field"><span class="label">Date of Birth</span><span class="value">${dobDisplay}</span></div>
+      <div class="detail-field"><span class="label">Height</span><span class="value">${escapeHtml(profile.height || 'Not set')}</span></div>
+      <div class="detail-field"><span class="label">${ethLabel}</span><span class="value">${escapeHtml(profile.ethnicity || 'Not set')}</span></div>
+      <div class="detail-field"><span class="label">Eye Color</span><span class="value">${escapeHtml(profile.eye_color || 'Not set')}</span></div>
+      ${needsGuardian ? `
+        <div class="detail-field"><span class="label">Guardian</span><span class="value">${escapeHtml(profile.guardian_name || 'Not set')}</span></div>
+        <div class="detail-field"><span class="label">Guardian Phone</span><span class="value">${escapeHtml(profile.guardian_phone || 'Not set')}</span></div>
+      ` : ''}
+    </div>
+
+    <div class="flex-row gap-12">
+      <button class="btn btn-outline" style="flex:1" onclick="startEditProfile('${id}')">Edit Profile</button>
+      <button class="btn btn-muted" style="flex:1" onclick="handleDeleteProfile('${id}')">Delete</button>
+    </div>
+
+    <button class="btn btn-red btn-block mt-20" onclick="navigate('camera','${id}')">&#128247; Take New Snap</button>
+
+    <div class="section-title">Snaps (${snaps.length})</div>
+    <div class="card-grid">${snapsHtml}</div>
+
+    <!-- Edit modal -->
+    <div id="editModal" class="hidden" style="margin-top:24px">
+      <h3 style="margin-bottom:16px">Edit Profile</h3>
+      <form id="editForm" onsubmit="return handleEditProfile(event, '${id}')">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="editName" value="${escapeAttr(profile.name)}" required>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="editDob" value="${profile.date_of_birth || ''}">
+        </div>
+        <div class="form-group">
+          <label>Height</label>
+          <input type="text" id="editHeight" value="${escapeAttr(profile.height || '')}">
+        </div>
+        <div class="form-group">
+          <label>${ethLabel}</label>
+          <input type="text" id="editEthnicity" value="${escapeAttr(profile.ethnicity || '')}">
+        </div>
+        <div class="form-group">
+          <label>Eye Color</label>
+          <input type="text" id="editEyeColor" value="${escapeAttr(profile.eye_color || '')}">
+        </div>
+        ${needsGuardian ? `
+          <div class="form-group">
+            <label>Guardian Name</label>
+            <input type="text" id="editGuardianName" value="${escapeAttr(profile.guardian_name || '')}">
+          </div>
+          <div class="form-group">
+            <label>Guardian Phone</label>
+            <input type="tel" id="editGuardianPhone" value="${escapeAttr(profile.guardian_phone || '')}">
+          </div>
+        ` : ''}
+        <div class="flex-row gap-12">
+          <button type="submit" class="btn btn-red" style="flex:1">Save Changes</button>
+          <button type="button" class="btn btn-muted" style="flex:1" onclick="document.getElementById('editModal').classList.add('hidden')">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function startEditProfile(id) {
+  const modal = document.getElementById('editModal');
+  modal.classList.toggle('hidden');
+  if (!modal.classList.contains('hidden')) {
+    modal.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+async function handleEditProfile(e, id) {
+  e.preventDefault();
+  const profile = profiles.find(p => p.id === id);
+  const needsGuardian = GUARDIAN_TYPES.includes(profile.type);
+
+  const body = {
+    name: document.getElementById('editName').value.trim(),
+    date_of_birth: document.getElementById('editDob').value || null,
+    height: document.getElementById('editHeight').value.trim() || null,
+    ethnicity: document.getElementById('editEthnicity').value.trim() || null,
+    eye_color: document.getElementById('editEyeColor').value.trim() || null,
+  };
+
+  if (needsGuardian) {
+    body.guardian_name = document.getElementById('editGuardianName').value.trim() || null;
+    body.guardian_phone = document.getElementById('editGuardianPhone').value.trim() || null;
+  }
+
+  try {
+    await api('/profiles/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    toast('Profile updated');
+    await renderProfile(id);
+  } catch (err) {
+    toast('Error updating profile');
+  }
+}
+
+async function handleDeleteProfile(id) {
+  if (!confirm('Delete this profile and all its snaps?')) return;
+  if (!confirm('Are you sure? This cannot be undone.')) return;
+
+  try {
+    await api('/profiles/' + id, { method: 'DELETE' });
+    toast('Profile deleted');
+    navigate('home');
+  } catch (err) {
+    toast('Error deleting profile');
+  }
+}
+
+// ---- CAMERA ----
+function renderCamera() {
+  currentPhotoFile = null;
+  document.getElementById('cameraInput').value = '';
+  document.getElementById('cameraPreview').classList.add('hidden');
+  document.getElementById('analyzeBtn').classList.add('hidden');
+  document.getElementById('cameraLoading').classList.add('hidden');
+  document.getElementById('selectPhotoBtn').classList.remove('hidden');
+  showScreen('camera');
+}
+
+function handlePhotoSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentPhotoFile = file;
+  const preview = document.getElementById('cameraPreview');
+  preview.src = URL.createObjectURL(file);
+  preview.classList.remove('hidden');
+  document.getElementById('analyzeBtn').classList.remove('hidden');
+}
+
+async function handleAnalyze() {
+  if (!currentPhotoFile || !currentProfileId) return;
+
+  document.getElementById('analyzeBtn').classList.add('hidden');
+  document.getElementById('selectPhotoBtn').classList.add('hidden');
+  document.getElementById('cameraPreview').classList.add('hidden');
+  document.getElementById('cameraLoading').classList.remove('hidden');
+
+  const formData = new FormData();
+  formData.append('photo', currentPhotoFile);
+  formData.append('profile_id', currentProfileId);
+
+  try {
+    const snap = await api('/snaps', { method: 'POST', body: formData });
+    navigate('processing', snap.id);
+  } catch (err) {
+    toast('Error analyzing photo');
+    renderCamera();
+  }
+}
+
+function goBackFromCamera() {
+  if (currentProfileId) {
+    navigate('profile', currentProfileId);
+  } else {
+    navigate('home');
+  }
+}
+
+// ---- PROCESSING / RESULTS ----
+async function renderProcessing(snapId) {
+  const content = document.getElementById('processingContent');
+  content.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><p>Loading analysis...</p></div>';
+  showScreen('processing');
+
+  try {
+    // Find the snap — check all profiles' snaps
+    await loadProfiles();
+    let snap = null;
+    let profile = null;
+
+    for (const p of profiles) {
+      const snaps = await loadSnaps(p.id);
+      const found = snaps.find(s => s.id === snapId);
+      if (found) {
+        snap = found;
+        profile = p;
+        currentProfileId = p.id;
+        break;
+      }
+    }
+
+    if (!snap) {
+      content.innerHTML = '<p>Snap not found.</p>';
+      return;
+    }
+
+    const desc = snap.ai_description || {};
+    const isPet = PET_TYPES.includes(profile.type);
+    const photoHtml = snap.photo_url
+      ? `<img src="${escapeAttr(snap.photo_url)}" style="width:100%;border-radius:var(--radius);margin-bottom:16px" alt="snap">`
+      : '';
+
+    let fieldsHtml = '';
+    if (isPet) {
+      fieldsHtml = renderField('Color / Markings', desc.color_markings || desc.color)
+        + renderField('Breed Traits', desc.breed_traits || desc.breed)
+        + renderField('Collar', desc.collar)
+        + renderField('Distinguishing Features', desc.distinguishing_features);
+    } else {
+      fieldsHtml = renderField('Clothing Top', desc.clothing_top)
+        + renderField('Clothing Bottom', desc.clothing_bottom)
+        + renderField('Shoes', desc.shoes)
+        + renderField('Accessories', desc.accessories)
+        + renderField('Hair', desc.hair)
+        + renderField('Eye Color', desc.eye_color)
+        + renderField('Height', desc.height)
+        + renderField('Distinguishing Features', desc.distinguishing_features);
+    }
+
+    const summary = desc.summary || desc.full_summary || '';
+
+    content.innerHTML = `
+      ${photoHtml}
+      <div class="analysis-card">
+        <h3>AI Analysis</h3>
+        ${fieldsHtml}
+        ${summary ? `<div class="summary"><p>${escapeHtml(summary)}</p></div>` : ''}
+      </div>
+      <div class="flex-row gap-12 mt-20">
+        <button class="btn btn-red" style="flex:1" onclick="navigate('profile','${profile.id}')">Looks Good &mdash; Save</button>
+        <button class="btn btn-outline" style="flex:1" onclick="navigate('camera','${profile.id}')">Retake</button>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = '<p>Error loading analysis.</p>';
+    console.error(err);
+  }
+}
+
+function renderField(label, value) {
+  if (!value) return '';
+  return `<div class="field"><div class="field-label">${escapeHtml(label)}</div><div class="field-value">${escapeHtml(String(value))}</div></div>`;
+}
+
+function goBackFromProcessing() {
+  if (currentProfileId) {
+    navigate('profile', currentProfileId);
+  } else {
+    navigate('home');
+  }
+}
+
+// ---- EMERGENCY ----
+async function renderEmergency() {
+  document.getElementById('app').classList.add('emergency-mode');
+  acquireWakeLock();
+
+  const content = document.getElementById('emergencyContent');
+  content.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  showScreen('emergency');
+
+  await loadProfiles();
+
+  // Load snaps for each profile
+  for (const p of profiles) {
+    await loadSnaps(p.id);
+  }
+
+  // Filter profiles that have at least one snap
+  const eligible = profiles.filter(p => (snapsCache[p.id] || []).length > 0);
+
+  if (eligible.length === 0) {
+    content.innerHTML = `
+      <div class="em-title">EMERGENCY MODE</div>
+      <div style="text-align:center;padding:40px 16px">
+        <p style="font-size:18px;color:#333">No profiles with snaps available.</p>
+        <p style="font-size:15px;color:#666;margin-top:12px">Take at least one snap of each person or pet first.</p>
+        <button class="em-btn em-btn-outline" style="margin-top:24px" onclick="navigate('home')">Go Back</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Step 1: Who is missing?
+  content.innerHTML = `
+    <div class="em-title">&#128680; EMERGENCY MODE</div>
+    <p class="em-subtitle">Who is missing?</p>
+    <div id="emProfiles">
+      ${eligible.map(p => {
+        const lastSnap = (snapsCache[p.id] || []).slice(-1)[0];
+        const thumbHtml = lastSnap && lastSnap.photo_url
+          ? `<img src="${escapeAttr(lastSnap.photo_url)}" alt="">`
+          : '';
+        return `
+          <div class="em-profile-check" onclick="toggleEmCheck(this)">
+            <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleEmCheck(this.parentElement)">
+            <div class="icon">${TYPE_ICONS[p.type] || '\u2753'}</div>
+            <div class="info"><h4>${escapeHtml(p.name)}</h4></div>
+            ${thumbHtml}
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <button class="em-btn em-btn-red" style="margin-top:16px;width:100%" onclick="showEmergencyDetails()">Continue</button>
+    <button class="em-btn em-btn-outline" style="margin-top:8px;width:100%" onclick="navigate('home')">Cancel</button>
+  `;
+}
+
+function toggleEmCheck(el) {
+  const cb = el.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+  el.classList.toggle('selected', cb.checked);
+}
+
+function showEmergencyDetails() {
+  const checked = document.querySelectorAll('#emProfiles input[type="checkbox"]:checked');
+  if (checked.length === 0) {
+    alert('Select at least one person or pet.');
+    return;
+  }
+
+  const selectedIds = Array.from(checked).map(cb => cb.value);
+  const content = document.getElementById('emergencyContent');
+
+  let blocksHtml = '';
+  for (const id of selectedIds) {
+    const profile = profiles.find(p => p.id === id);
+    if (!profile) continue;
+
+    const snaps = snapsCache[id] || [];
+    const lastSnap = snaps[snaps.length - 1];
+    const desc = lastSnap ? (lastSnap.ai_description || {}) : {};
+    const isPet = PET_TYPES.includes(profile.type);
+
+    // Build read-aloud script
+    const script = buildScript(profile, desc, isPet);
+
+    // Build bullet points
+    const bullets = buildBullets(profile, desc, isPet);
+
+    blocksHtml += `
+      <div class="em-person-block">
+        <h3>${TYPE_ICONS[profile.type] || ''} ${escapeHtml(profile.name)}</h3>
+        <div class="em-script">${escapeHtml(script)}</div>
+        <ul class="em-bullets">${bullets}</ul>
+        <div class="em-actions">
+          <button class="em-btn em-btn-outline" onclick="shareFlyer('${id}', false)">&#128196; Share Description</button>
+          <button class="em-btn em-btn-outline" onclick="shareFlyer('${id}', true)">&#128247; Share With Photo</button>
+        </div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = `
+    <div class="em-title">&#128680; MISSING</div>
+    ${blocksHtml}
+    <a href="tel:911" class="em-btn em-btn-911" style="width:100%;text-decoration:none;margin-top:8px">&#128222; Call 911</a>
+    <button class="em-btn em-btn-outline" style="width:100%;margin-top:8px" onclick="navigate('home')">Back to Home</button>
+  `;
+}
+
+function buildScript(profile, desc, isPet) {
+  const name = profile.name;
+  const type = profile.type.toLowerCase();
+  const height = desc.height || profile.height || '';
+  const hair = desc.hair || '';
+  const clothing = [desc.clothing_top, desc.clothing_bottom, desc.shoes].filter(Boolean).join(', ');
+  const features = desc.distinguishing_features || '';
+
+  if (isPet) {
+    const breed = desc.breed_traits || desc.breed || profile.ethnicity || '';
+    const color = desc.color_markings || desc.color || '';
+    const collar = desc.collar || '';
+    let s = `Lost ${type}, a ${breed ? breed : type} named ${name}.`;
+    if (color) s += ` ${color}.`;
+    if (collar) s += ` Wearing ${collar}.`;
+    if (features) s += ` ${features}.`;
+    return s;
+  }
+
+  let s = `Missing ${type}`;
+  if (profile.type === 'child') s = `Missing child`;
+  else if (profile.type === 'teen') s = `Missing teenager`;
+  else if (profile.type === 'elder') s = `Missing elderly person`;
+
+  s += `, named ${name}.`;
+  if (height) s += ` Approximately ${height} tall.`;
+  if (hair) s += ` ${hair}.`;
+  if (clothing) s += ` Last seen wearing ${clothing}.`;
+  if (features) s += ` ${features}.`;
+  if (profile.guardian_name) s += ` Contact ${profile.guardian_name}${profile.guardian_phone ? ' at ' + profile.guardian_phone : ''}.`;
+
+  return s;
+}
+
+function buildBullets(profile, desc, isPet) {
+  const items = [];
+  items.push(['Name', profile.name]);
+  items.push(['Type', profile.type]);
+
+  if (isPet) {
+    if (desc.color_markings || desc.color) items.push(['Color/Markings', desc.color_markings || desc.color]);
+    if (desc.breed_traits || desc.breed || profile.ethnicity) items.push(['Breed', desc.breed_traits || desc.breed || profile.ethnicity]);
+    if (desc.collar) items.push(['Collar', desc.collar]);
+    if (desc.distinguishing_features) items.push(['Features', desc.distinguishing_features]);
+  } else {
+    if (desc.height || profile.height) items.push(['Height', desc.height || profile.height]);
+    if (desc.hair) items.push(['Hair', desc.hair]);
+    if (desc.clothing_top) items.push(['Top', desc.clothing_top]);
+    if (desc.clothing_bottom) items.push(['Bottom', desc.clothing_bottom]);
+    if (desc.shoes) items.push(['Shoes', desc.shoes]);
+    if (desc.accessories) items.push(['Accessories', desc.accessories]);
+    if (desc.distinguishing_features) items.push(['Features', desc.distinguishing_features]);
+    if (profile.guardian_name) items.push(['Guardian', profile.guardian_name]);
+    if (profile.guardian_phone) items.push(['Phone', profile.guardian_phone]);
+  }
+
+  return items.map(([k, v]) => `<li><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(v))}</li>`).join('');
+}
+
+// ---- FLYER GENERATION ----
+async function shareFlyer(profileId, withPhoto) {
+  const profile = profiles.find(p => p.id === profileId);
+  if (!profile) return;
+
+  const snaps = snapsCache[profileId] || [];
+  const lastSnap = snaps[snaps.length - 1];
+  const desc = lastSnap ? (lastSnap.ai_description || {}) : {};
+  const isPet = PET_TYPES.includes(profile.type);
+
+  const W = 800;
+  const H = 1200;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  let y = 50;
+
+  // Title
+  ctx.fillStyle = '#e63946';
+  ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  const typeLabel = isPet ? profile.type.toUpperCase() : 'PERSON';
+  ctx.fillText(`MISSING ${typeLabel}`, W / 2, y + 48);
+  y += 80;
+
+  // Red line
+  ctx.fillStyle = '#e63946';
+  ctx.fillRect(100, y, W - 200, 4);
+  y += 30;
+
+  // Photo
+  if (withPhoto && lastSnap && lastSnap.photo_url) {
+    try {
+      const img = await loadImage(lastSnap.photo_url);
+      const maxPhotoH = 320;
+      const ratio = Math.min((W - 160) / img.width, maxPhotoH / img.height);
+      const pw = img.width * ratio;
+      const ph = img.height * ratio;
+      ctx.drawImage(img, (W - pw) / 2, y, pw, ph);
+      y += ph + 24;
+    } catch {
+      // Skip photo on error
+    }
+  }
+
+  // Name
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(profile.name, W / 2, y + 40);
+  y += 60;
+
+  // Details as bullet points
+  ctx.textAlign = 'left';
+  ctx.font = '22px -apple-system, BlinkMacSystemFont, sans-serif';
+  const bulletItems = [];
+
+  if (isPet) {
+    if (profile.ethnicity) bulletItems.push(`Breed: ${profile.ethnicity}`);
+    if (desc.color_markings || desc.color) bulletItems.push(`Color: ${desc.color_markings || desc.color}`);
+    if (desc.collar) bulletItems.push(`Collar: ${desc.collar}`);
+    if (desc.distinguishing_features) bulletItems.push(`Features: ${desc.distinguishing_features}`);
+  } else {
+    if (desc.height || profile.height) bulletItems.push(`Height: ${desc.height || profile.height}`);
+    if (desc.hair) bulletItems.push(`Hair: ${desc.hair}`);
+    if (desc.clothing_top) bulletItems.push(`Top: ${desc.clothing_top}`);
+    if (desc.clothing_bottom) bulletItems.push(`Bottom: ${desc.clothing_bottom}`);
+    if (desc.shoes) bulletItems.push(`Shoes: ${desc.shoes}`);
+    if (desc.accessories) bulletItems.push(`Accessories: ${desc.accessories}`);
+    if (desc.distinguishing_features) bulletItems.push(`Features: ${desc.distinguishing_features}`);
+    if (profile.ethnicity) bulletItems.push(`Ethnicity: ${profile.ethnicity}`);
+    if (profile.eye_color) bulletItems.push(`Eyes: ${profile.eye_color}`);
+  }
+
+  const margin = 80;
+  for (const item of bulletItems) {
+    if (y > H - 120) break;
+    const lines = wrapText(ctx, item, W - margin * 2);
+    for (const line of lines) {
+      ctx.fillStyle = '#333';
+      ctx.fillText(`\u2022  ${line}`, margin, y + 22);
+      y += 30;
+    }
+    y += 4;
+  }
+
+  // Guardian contact
+  if (profile.guardian_name || profile.guardian_phone) {
+    y += 12;
+    ctx.fillStyle = '#e63946';
+    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+    const contactLine = `Contact: ${profile.guardian_name || ''} ${profile.guardian_phone || ''}`.trim();
+    ctx.fillText(contactLine, margin, y + 24);
+    y += 40;
+  }
+
+  // Footer
+  ctx.fillStyle = '#999';
+  ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Generated by FlashSafe', W / 2, H - 30);
+
+  // Convert to blob and share
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], 'missing-flyer.png', { type: 'image/png' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: `Missing: ${profile.name}`,
+          text: buildScript(profile, desc, isPet),
+          files: [file]
+        });
+      } catch (e) {
+        if (e.name !== 'AbortError') downloadBlob(blob, 'missing-flyer.png');
+      }
+    } else {
+      downloadBlob(blob, 'missing-flyer.png');
+    }
+  }, 'image/png');
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---- WAKE LOCK ----
+async function acquireWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch { /* not critical */ }
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
+// ---- SETTINGS ----
+function renderSettings() {
+  const saved = localStorage.getItem('flashsafe_reminder_time') || '';
+  document.getElementById('reminderTime').value = saved;
+  showScreen('settings');
+}
+
+function saveReminderTime(time) {
+  localStorage.setItem('flashsafe_reminder_time', time);
+  scheduleReminder(time);
+  toast('Reminder set for ' + time);
+}
+
+function scheduleReminder(time) {
+  if (!time) return;
+  if (!('Notification' in window)) return;
+
+  Notification.requestPermission().then(perm => {
+    if (perm !== 'granted') return;
+
+    // Clear any existing interval
+    if (window._reminderInterval) clearInterval(window._reminderInterval);
+
+    // Check every 60 seconds if it's time
+    window._reminderInterval = setInterval(() => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      if (`${h}:${m}` === time) {
+        new Notification('FlashSafe Reminder', {
+          body: 'Time to take a fresh snap of your profiles!',
+          icon: '/safe/icon-192.png'
+        });
+      }
+    }, 60000);
+  });
+}
+
+async function handleDeleteAllData() {
+  if (!confirm('Delete ALL profiles and snaps? This cannot be undone.')) return;
+  if (!confirm('Final confirmation: Delete everything?')) return;
+
+  try {
+    for (const p of profiles) {
+      await api('/profiles/' + p.id, { method: 'DELETE' });
+    }
+    profiles = [];
+    snapsCache = {};
+    localStorage.removeItem('flashsafe_reminder_time');
+    toast('All data deleted');
+    navigate('home');
+  } catch (err) {
+    toast('Error deleting data');
+  }
+}
+
+// ---- Utility ----
+function escapeHtml(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncate(str, len) {
+  if (!str) return '';
+  return str.length > len ? str.slice(0, len) + '...' : str;
+}
+
+function toast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ---- Init ----
+window.addEventListener('hashchange', handleRoute);
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/safe/sw.js').catch(() => {});
+}
+
+// Init reminder on load
+const savedReminder = localStorage.getItem('flashsafe_reminder_time');
+if (savedReminder) scheduleReminder(savedReminder);
+
+// Initial route
+handleRoute();
+</script>
+</body>
+</html>

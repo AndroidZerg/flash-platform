@@ -1,0 +1,219 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const { supabase } = require('../core/supabase');
+const { uploadPhoto, generateThumbnail } = require('../core/storage');
+const { analyzeImage } = require('../core/anthropic');
+const productPrompt = require('../core/prompts/product');
+const foodPrompt = require('../core/prompts/food');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+function getPrompt(type) {
+  if (type === 'food') return foodPrompt;
+  return productPrompt;
+}
+
+function buildSearchText(ai) {
+  const fields = [ai.title, ai.description, ai.category, ai.brand, ai.notable_features, ai.condition];
+  if (ai.keywords) fields.push(...ai.keywords);
+  if (ai.dietary_info) fields.push(...ai.dietary_info);
+  return fields.filter(Boolean).join(' ');
+}
+
+// POST /api/items — Create item with photo + AI analysis
+router.post('/items', upload.single('photo'), async (req, res) => {
+  try {
+    const { event_id, vendor_id, session_token, type } = req.body;
+
+    if (!req.file) return res.status(400).json({ error: 'photo is required' });
+    if (!event_id || !vendor_id || !session_token) {
+      return res.status(400).json({ error: 'event_id, vendor_id, and session_token are required' });
+    }
+
+    // Verify vendor session
+    const { data: vendor } = await supabase.from('vendors')
+      .select('session_token')
+      .eq('id', vendor_id)
+      .single();
+
+    if (!vendor || vendor.session_token !== session_token) {
+      return res.status(403).json({ error: 'Invalid vendor session' });
+    }
+
+    // Upload photo + thumbnail
+    const [photo_url, thumbnail_url] = await Promise.all([
+      uploadPhoto(req.file.buffer, req.file.originalname),
+      generateThumbnail(req.file.buffer)
+    ]);
+
+    // AI analysis
+    const base64 = req.file.buffer.toString('base64');
+    const mediaType = req.file.mimetype || 'image/jpeg';
+    const itemType = type || 'product';
+    const ai_description = await analyzeImage(base64, mediaType, getPrompt(itemType));
+
+    const search_text = buildSearchText(ai_description);
+
+    const { data, error } = await supabase.from('items').insert({
+      event_id, vendor_id, type: itemType,
+      photo_url, thumbnail_url, ai_description,
+      title: ai_description.title || null,
+      description: ai_description.description || null,
+      category: ai_description.category || null,
+      condition: ai_description.condition || null,
+      search_text, status: 'draft'
+    }).select().single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/items — Browse items
+router.get('/items', async (req, res) => {
+  try {
+    const { event_id, status, q, category, min_price, max_price, sort, vendor_id } = req.query;
+
+    let query = supabase.from('items').select('*, vendors(display_name, booth_location)');
+
+    if (event_id) query = query.eq('event_id', event_id);
+    if (vendor_id) query = query.eq('vendor_id', vendor_id);
+    if (status) query = query.eq('status', status);
+    else query = query.in('status', ['listed', 'sold']);
+    if (category) query = query.eq('category', category);
+    if (min_price) query = query.gte('price_cents', parseInt(min_price));
+    if (max_price) query = query.lte('price_cents', parseInt(max_price));
+    if (q) query = query.textSearch('search_text', q, { type: 'websearch' });
+
+    if (sort === 'price_asc') query = query.order('price_cents', { ascending: true });
+    else if (sort === 'price_desc') query = query.order('price_cents', { ascending: false });
+    else query = query.order('listed_at', { ascending: false, nullsFirst: false });
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/items/:id — Update item
+router.put('/items/:id', async (req, res) => {
+  try {
+    const session = req.body.session_token || req.query.session;
+
+    // Verify ownership
+    const { data: item } = await supabase.from('items').select('vendor_id').eq('id', req.params.id).single();
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    if (session) {
+      const { data: vendor } = await supabase.from('vendors')
+        .select('session_token')
+        .eq('id', item.vendor_id)
+        .single();
+      if (!vendor || vendor.session_token !== session) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+    }
+
+    const { title, description, category, condition, price_cents, price_note, vendor_notes, status } = req.body;
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (category !== undefined) updates.category = category;
+    if (condition !== undefined) updates.condition = condition;
+    if (price_cents !== undefined) updates.price_cents = price_cents;
+    if (price_note !== undefined) updates.price_note = price_note;
+    if (vendor_notes !== undefined) updates.vendor_notes = vendor_notes;
+    if (status !== undefined) {
+      updates.status = status;
+      if (status === 'listed') updates.listed_at = new Date().toISOString();
+      if (status === 'sold') updates.sold_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase.from('items')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/items/:id/list — Mark as listed
+router.put('/items/:id/list', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('items')
+      .update({ status: 'listed', listed_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/items/:id/sold — Mark as sold
+router.put('/items/:id/sold', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('items')
+      .update({ status: 'sold', sold_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/items/:id/view — Increment view count
+router.put('/items/:id/view', async (req, res) => {
+  try {
+    const { data: item } = await supabase.from('items')
+      .select('view_count')
+      .eq('id', req.params.id)
+      .single();
+
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    const { data, error } = await supabase.from('items')
+      .update({ view_count: (item.view_count || 0) + 1 })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/items/:id — Remove item
+router.delete('/items/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('items')
+      .update({ status: 'removed' })
+      .eq('id', req.params.id);
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;

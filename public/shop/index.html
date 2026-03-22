@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ff6b2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FlashShop</title>
+<link rel="manifest" href="/shop/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --text: #ffffff;
+  --muted: #8892b0;
+  --accent: #ff6b2b;
+  --accent-hover: #e55a1f;
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+html, body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  padding: 16px;
+  padding-bottom: 32px;
+  position: relative;
+}
+
+/* --- Typography --- */
+h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
+h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 6px; }
+h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+p { line-height: 1.5; }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.center { text-align: center; }
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  width: 100%;
+  text-decoration: none;
+  color: var(--text);
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-secondary { background: var(--card); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+.btn-secondary:hover:not(:disabled) { background: #1e2d4d; }
+.btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+.btn-outline:hover:not(:disabled) { background: rgba(255,107,43,0.1); }
+.btn-small { padding: 8px 16px; font-size: 0.85rem; width: auto; }
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { flex: 1; }
+
+/* --- Inputs --- */
+.input-group { margin-bottom: 16px; }
+.input-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+input[type="text"], input[type="number"], input[type="datetime-local"],
+textarea, select {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 80px; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' stroke-width='2' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* --- Cards --- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* --- Status badges --- */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-draft { background: rgba(136,146,176,0.25); color: #8892b0; }
+.badge-approved { background: rgba(59,130,246,0.2); color: #60a5fa; }
+.badge-listed { background: rgba(34,197,94,0.2); color: #4ade80; }
+.badge-sold { background: rgba(239,68,68,0.2); color: #f87171; }
+
+/* --- Spinner --- */
+.spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,46,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255,255,255,0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.spinner-text { margin-top: 16px; color: var(--muted); font-size: 0.9rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Toast --- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: var(--radius-btn);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  font-size: 0.9rem;
+  z-index: 1100;
+  animation: toastIn 0.3s ease;
+  max-width: 90%;
+  text-align: center;
+}
+.toast.error { border-left: 4px solid #f87171; }
+.toast.success { border-left: 4px solid #4ade80; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* --- Screen transitions --- */
+.screen { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- Logo --- */
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--text); }
+
+/* --- Header bar --- */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.header .back-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.header .back-btn:hover { color: var(--text); }
+.header h2 { margin-bottom: 0; }
+
+/* --- Item grid --- */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.item-card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.item-card:hover { transform: translateY(-2px); }
+.item-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #0f1629;
+}
+.item-card .item-info {
+  padding: 10px 12px;
+}
+.item-card .item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.item-card .item-price {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.item-card .item-vendor {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Vendor item list --- */
+.vendor-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.vendor-item:hover { transform: translateX(2px); }
+.vendor-item img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #0f1629;
+  flex-shrink: 0;
+}
+.vendor-item-info { flex: 1; min-width: 0; }
+.vendor-item-info .item-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vendor-item-info .item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* --- Status bar --- */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-btn);
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.status-bar .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-preview { background: rgba(234,179,8,0.15); color: #fbbf24; }
+.status-preview .dot { background: #fbbf24; }
+.status-live { background: rgba(34,197,94,0.15); color: #4ade80; }
+.status-live .dot { background: #4ade80; }
+
+/* --- Photo preview --- */
+.photo-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--card);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed rgba(255,255,255,0.1);
+  border-radius: var(--radius-card);
+  width: 100%;
+  aspect-ratio: 1;
+  justify-content: center;
+}
+.photo-placeholder:hover { border-color: var(--accent); }
+.photo-placeholder .camera-icon { font-size: 3rem; }
+
+/* --- Item detail --- */
+.detail-photo {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  background: #0f1629;
+  margin-bottom: 16px;
+}
+.detail-price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.detail-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-left: 8px;
+}
+
+/* --- Event info card --- */
+.event-card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.event-card h2 { color: var(--accent); }
+.event-card .event-dates { color: var(--muted); font-size: 0.85rem; margin: 8px 0; }
+
+/* --- Join code display --- */
+.join-code-display {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--accent);
+  text-align: center;
+  padding: 20px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  margin: 16px 0;
+}
+
+/* --- Search bar --- */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.search-bar input { flex: 1; }
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.filter-row select { flex: 1; font-size: 0.85rem; padding: 8px 10px; }
+
+/* --- Banner --- */
+.banner {
+  background: rgba(255,107,43,0.1);
+  border: 1px solid rgba(255,107,43,0.3);
+  border-radius: var(--radius-btn);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-align: center;
+}
+
+/* --- Empty state --- */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+/* --- QR --- */
+.qr-container { text-align: center; margin: 16px 0; }
+.qr-container img { border-radius: 12px; background: #fff; padding: 12px; }
+
+/* --- Stats row --- */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-box {
+  flex: 1;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-box .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+.stat-box .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+/* --- Spacer --- */
+.spacer { height: 16px; }
+.spacer-lg { height: 24px; }
+
+/* --- Link --- */
+.link { color: var(--accent); text-decoration: none; cursor: pointer; font-weight: 500; }
+.link:hover { text-decoration: underline; }
+
+/* --- Divider --- */
+.divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; }
+
+/* --- Event Discovery Cards --- */
+.event-discover-card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.event-discover-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.event-discover-card .ed-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+.event-discover-card .ed-meta { font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.event-discover-card .ed-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.event-discover-card .ed-distance { color: var(--accent); font-weight: 600; }
+.event-discover-card .ed-location { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+.code-toggle {
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 12px;
+  user-select: none;
+}
+.code-toggle:hover { color: var(--text); }
+.code-toggle-content { display: none; margin-top: 8px; }
+.code-toggle-content.open { display: block; }
+
+/* --- Multi-image upload grid --- */
+.multi-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.multi-thumb-grid .thumb-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card);
+}
+.multi-thumb-grid .thumb-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.multi-thumb-grid .thumb-cell .remove-thumb {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- Upload progress bar --- */
+.upload-progress {
+  margin: 16px 0;
+}
+.upload-progress .progress-bar-outer {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.upload-progress .progress-bar-inner {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.upload-progress .progress-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* --- Vendor banner/logo --- */
+.vendor-banner {
+  width: 100%;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.vendor-banner img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.vendor-banner-placeholder {
+  background: linear-gradient(135deg, var(--accent), #e55a1f);
+  padding: 32px 20px;
+  text-align: center;
+  border-radius: var(--radius-card);
+  margin-bottom: 16px;
+}
+.vendor-banner-placeholder h1 {
+  color: #fff;
+  font-size: 1.75rem;
+  margin-bottom: 4px;
+}
+.vendor-banner-placeholder p {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+}
+.upload-logo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px dashed rgba(255,255,255,0.2);
+  border-radius: var(--radius-btn);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 16px;
+}
+.upload-logo-btn:hover { background: rgba(255,255,255,0.15); color: var(--text); }
+.vendor-logo-small {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ============================================================
+// FlashShop SPA — All JS inline
+// ============================================================
+
+(function() {
+  'use strict';
+
+  // ---------- CONFIG ----------
+  const API = '';  // same-origin
+
+  // ---------- STATE ----------
+  const state = {
+    event: null,
+    vendor: null,
+    items: [],
+    browseItems: [],
+    currentItem: null,
+    loading: false,
+    loadingText: '',
+  };
+
+  // ---------- STORAGE ----------
+  function save(k, v) { try { localStorage.setItem('fs_' + k, JSON.stringify(v)); } catch(e){} }
+  function load(k) { try { return JSON.parse(localStorage.getItem('fs_' + k)); } catch(e){ return null; } }
+  function clearAll() { ['session_token','vendor_id','event_id','vendor','event'].forEach(k => localStorage.removeItem('fs_' + k)); }
+
+  function saveSession(vendor, event) {
+    if (vendor) {
+      save('session_token', vendor.session_token);
+      save('vendor_id', vendor.id);
+      save('vendor', vendor);
+      state.vendor = vendor;
+    }
+    if (event) {
+      save('event_id', event.id);
+      save('event', event);
+      state.event = event;
+    }
+  }
+
+  function loadSession() {
+    state.vendor = load('vendor');
+    state.event = load('event');
+  }
+
+  function getToken() { return load('session_token'); }
+  function getEventId() { return load('event_id'); }
+  function getVendorId() { return load('vendor_id'); }
+
+  // ---------- UTILS ----------
+  function $(sel, parent) { return (parent || document).querySelector(sel); }
+  function $$(sel, parent) { return Array.from((parent || document).querySelectorAll(sel)); }
+  function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function cents(c) { if (c == null || c === 0) return 'Free'; return '$' + (c / 100).toFixed(2); }
+  function formatDate(iso) { if (!iso) return ''; try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch(e){ return iso; } }
+  function badgeClass(status) {
+    const m = { draft: 'badge-draft', approved: 'badge-approved', listed: 'badge-listed', sold: 'badge-sold' };
+    return m[status] || 'badge-draft';
+  }
+  function photoUrl(item) {
+    if (!item) return '';
+    if (item.photo_url) return item.photo_url;
+    if (item.photos && item.photos.length) return item.photos[0];
+    return '';
+  }
+
+  function haversineDistance(lat1, lng1, lat2, lng2) {
+    const R = 3959; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ---------- TOAST ----------
+  let toastTimer = null;
+  function toast(msg, type) {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    clearTimeout(toastTimer);
+    const el = document.createElement('div');
+    el.className = 'toast ' + (type || '');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    toastTimer = setTimeout(() => el.remove(), 3500);
+  }
+
+  // ---------- SPINNER ----------
+  function showSpinner(text) {
+    hideSpinner();
+    const el = document.createElement('div');
+    el.className = 'spinner-overlay';
+    el.id = 'global-spinner';
+    el.innerHTML = '<div class="spinner"></div>' + (text ? '<div class="spinner-text">' + esc(text) + '</div>' : '');
+    document.body.appendChild(el);
+  }
+  function hideSpinner() { const s = document.getElementById('global-spinner'); if (s) s.remove(); }
+
+  // ---------- API ----------
+  async function api(method, path, body, isForm) {
+    const opts = { method };
+    if (body && !isForm) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify(body);
+    } else if (body && isForm) {
+      opts.body = body; // FormData
+    }
+    const res = await fetch(API + path, opts);
+    if (!res.ok) {
+      let msg = 'Request failed (' + res.status + ')';
+      try { const j = await res.json(); msg = j.detail || j.message || msg; } catch(e){}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  // ---------- ROUTER ----------
+  function navigate(hash) {
+    window.location.hash = hash;
+  }
+
+  function getRoute() {
+    const h = (window.location.hash || '#landing').slice(1);
+    const parts = h.split('/');
+    return { screen: parts[0] || 'landing', param: parts[1] || null };
+  }
+
+  function render() {
+    const { screen, param } = getRoute();
+    const app = document.getElementById('app');
+
+    const routes = {
+      landing: renderLanding,
+      join: renderJoin,
+      vendor: renderVendor,
+      camera: renderCamera,
+      edit: renderEdit,
+      preview: renderPreview,
+      browse: renderBrowse,
+      item: renderItemDetail,
+      create: renderCreate,
+    };
+
+    const fn = routes[screen];
+    if (fn) {
+      app.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'screen';
+      app.appendChild(div);
+      fn(div, param);
+    } else {
+      app.innerHTML = '<div class="screen"><div class="center spacer-lg"></div><h1 class="center">404</h1><p class="center muted">Page not found</p><div class="spacer-lg"></div><button class="btn btn-primary" onclick="location.hash=\'#landing\'">Go Home</button></div>';
+    }
+  }
+
+  window.addEventListener('hashchange', render);
+
+  // ---------- CHECK STRIPE RETURN ----------
+  function checkStripeReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('paid') === 'true' && params.get('session')) {
+      // Store session token if provided
+      const sessionToken = params.get('session');
+      if (sessionToken && sessionToken !== getToken()) {
+        save('session_token', sessionToken);
+      }
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+      toast('Payment successful! Your booth is live.', 'success');
+      // Refresh vendor data
+      refreshVendor();
+      navigate('#vendor');
+      return true;
+    }
+    return false;
+  }
+
+  async function refreshVendor() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const data = await api('GET', '/api/vendors/me?session=' + encodeURIComponent(token));
+      if (data.vendor) {
+        state.vendor = data.vendor;
+        save('vendor', data.vendor);
+        if (data.items) state.items = data.items;
+      } else {
+        state.vendor = data;
+        save('vendor', data);
+      }
+    } catch(e) { /* silent */ }
+  }
+
+  // ============================================================
+  // SCREENS
+  // ============================================================
+
+  // ---------- #landing ----------
+  function renderLanding(root) {
+    root.innerHTML = `
+      <div class="spacer-lg"></div>
+      <div class="logo">Flash<span>Shop</span></div>
+      <p class="center muted small" style="margin-bottom: 24px;">Your instant marketplace</p>
+      <div id="events-list"><div class="center muted" style="padding:24px;">Finding events near you...</div></div>
+      <div id="event-info" style="display:none;"></div>
+      <div class="spacer"></div>
+      <div class="code-toggle" id="code-toggle-btn">Have an event code? &#9660;</div>
+      <div class="code-toggle-content" id="code-section">
+        <div class="card">
+          <div class="input-group">
+            <label>Event Code</label>
+            <input type="text" id="join-code" placeholder="Enter event code" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase; text-align:center; font-size:1.2rem; letter-spacing:3px;">
+          </div>
+          <button class="btn btn-primary" id="join-btn">Join Event</button>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <p class="center"><a class="link" href="#create">Create an Event</a></p>
+    `;
+
+    // Toggle event code section
+    $('#code-toggle-btn', root).addEventListener('click', () => {
+      const section = $('#code-section', root);
+      section.classList.toggle('open');
+      const btn = $('#code-toggle-btn', root);
+      btn.innerHTML = section.classList.contains('open') ? 'Have an event code? &#9650;' : 'Have an event code? &#9660;';
+    });
+
+    // Event code input (secondary option)
+    const codeInput = $('#join-code', root);
+    const joinBtn = $('#join-btn', root);
+    const infoDiv = $('#event-info', root);
+
+    codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinBtn.click(); });
+
+    joinBtn.addEventListener('click', async () => {
+      const code = codeInput.value.trim().toUpperCase();
+      if (!code) { toast('Please enter an event code', 'error'); return; }
+
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Looking up...';
+
+      try {
+        const event = await api('GET', '/api/events/' + encodeURIComponent(code));
+        state.event = event;
+        save('event_id', event.id);
+        save('event', event);
+
+        infoDiv.style.display = 'block';
+        infoDiv.innerHTML = `
+          <div class="event-card">
+            <h2>${esc(event.name)}</h2>
+            ${event.starts_at || event.ends_at ? '<p class="event-dates">' + formatDate(event.starts_at) + (event.ends_at ? ' &mdash; ' + formatDate(event.ends_at) : '') + '</p>' : ''}
+            ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
+            ${event.description ? '<p class="small" style="margin-top:8px;">' + esc(event.description) + '</p>' : ''}
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="vendor-btn">Join as Vendor</button>
+            <button class="btn btn-secondary" id="browse-btn">Browse as Buyer</button>
+          </div>
+        `;
+
+        $('#vendor-btn', infoDiv).addEventListener('click', () => navigate('#join'));
+        $('#browse-btn', infoDiv).addEventListener('click', () => navigate('#browse'));
+
+      } catch(e) {
+        toast(e.message || 'Event not found', 'error');
+      } finally {
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Event';
+      }
+    });
+
+    // Event discovery: fetch active events and user location
+    loadEventDiscovery(root);
+  }
+
+  async function loadEventDiscovery(root) {
+    const listDiv = $('#events-list', root);
+    if (!listDiv) return;
+
+    let userLat = null, userLng = null;
+
+    // Request geolocation (non-blocking)
+    const geoPromise = new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLat = pos.coords.latitude;
+          userLng = pos.coords.longitude;
+          resolve(pos);
+        },
+        () => resolve(null),
+        { timeout: 5000, maximumAge: 300000 }
+      );
+    });
+
+    // Fetch active events
+    let events = [];
+    try {
+      const data = await api('GET', '/api/discover?status=active');
+      events = Array.isArray(data) ? data : (data.events || []);
+    } catch(e) {
+      listDiv.innerHTML = '<p class="center muted">Could not load events</p>';
+      return;
+    }
+
+    // Wait for geolocation (with timeout already set)
+    await geoPromise;
+
+    if (!events.length) {
+      listDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127915;</div><p>No active events nearby</p><p class="small muted">Create one or enter an event code below</p></div>';
+      return;
+    }
+
+    // Calculate distances if we have user location
+    if (userLat !== null && userLng !== null) {
+      events.forEach(ev => {
+        if (ev.location_lat != null && ev.location_lng != null) {
+          ev._distance = haversineDistance(userLat, userLng, ev.location_lat, ev.location_lng);
+        } else {
+          ev._distance = null;
+        }
+      });
+      // Sort by distance (events with no coords go to end)
+      events.sort((a, b) => {
+        if (a._distance == null && b._distance == null) return 0;
+        if (a._distance == null) return 1;
+        if (b._distance == null) return -1;
+        return a._distance - b._distance;
+      });
+    } else {
+      // Sort by start date (soonest first)
+      events.sort((a, b) => {
+        const da = a.starts_at ? new Date(a.starts_at).getTime() : Infinity;
+        const db = b.starts_at ? new Date(b.starts_at).getTime() : Infinity;
+        return da - db;
+      });
+    }
+
+    listDiv.innerHTML = '<p class="muted small" style="margin-bottom:12px;">Events near you</p>' +
+      events.map(ev => {
+        const distStr = ev._distance != null ? '<span class="ed-distance">' + ev._distance.toFixed(1) + ' mi</span>' : '';
+        return `
+          <div class="event-discover-card" data-event-id="${ev.id}" data-event="${esc(JSON.stringify(ev))}">
+            <div class="ed-name">${esc(ev.name)}</div>
+            ${ev.location_name ? '<div class="ed-location">' + esc(ev.location_name) + '</div>' : ''}
+            <div class="ed-meta">
+              ${ev.starts_at ? '<span>&#128197; ' + formatDate(ev.starts_at) + '</span>' : ''}
+              ${distStr}
+              ${ev.vendor_count != null ? '<span>&#128722; ' + ev.vendor_count + ' vendors</span>' : ''}
+              ${ev.item_count != null ? '<span>&#128230; ' + ev.item_count + ' items</span>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    // Handle card clicks
+    $$('.event-discover-card', listDiv).forEach(card => {
+      card.addEventListener('click', () => {
+        let ev;
+        try { ev = JSON.parse(card.dataset.event); } catch(e) { return; }
+        showEventDetail(root, ev);
+      });
+    });
+  }
+
+  function showEventDetail(root, event) {
+    const infoDiv = $('#event-info', root);
+    if (!infoDiv) return;
+
+    state.event = event;
+    save('event_id', event.id);
+    save('event', event);
+
+    infoDiv.style.display = 'block';
+    infoDiv.innerHTML = `
+      <div class="event-card">
+        <h2>${esc(event.name)}</h2>
+        ${event.starts_at || event.ends_at ? '<p class="event-dates">' + formatDate(event.starts_at) + (event.ends_at ? ' &mdash; ' + formatDate(event.ends_at) : '') + '</p>' : ''}
+        ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
+        ${event.description ? '<p class="small" style="margin-top:8px;">' + esc(event.description) + '</p>' : ''}
+        ${event.vendor_count != null ? '<p class="muted small" style="margin-top:8px;">' + event.vendor_count + ' vendors &middot; ' + (event.item_count || 0) + ' items</p>' : ''}
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="vendor-btn">Join as Vendor</button>
+        <button class="btn btn-secondary" id="browse-btn">Browse as Buyer</button>
+      </div>
+    `;
+
+    $('#vendor-btn', infoDiv).addEventListener('click', () => navigate('#join'));
+    $('#browse-btn', infoDiv).addEventListener('click', () => navigate('#browse'));
+
+    // Scroll to it
+    infoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // ---------- #join ----------
+  function renderJoin(root) {
+    if (!state.event) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <h2>Join as Vendor</h2>
+      </div>
+      <div class="event-card" style="text-align:left; margin-top:0;">
+        <p class="muted small">Joining</p>
+        <h3>${esc(state.event.name)}</h3>
+      </div>
+      <div class="card">
+        <div class="input-group">
+          <label>Display Name</label>
+          <input type="text" id="display-name" placeholder="Your name or business name">
+        </div>
+        <div class="input-group">
+          <label>Booth Location</label>
+          <input type="text" id="booth-loc" placeholder="e.g. Table 5, Near entrance">
+        </div>
+        <button class="btn btn-primary" id="join-submit">Join Event</button>
+      </div>
+    `;
+
+    $('#join-submit', root).addEventListener('click', async () => {
+      const name = $('#display-name', root).value.trim();
+      const booth = $('#booth-loc', root).value.trim();
+      if (!name) { toast('Please enter your name', 'error'); return; }
+
+      const btn = $('#join-submit', root);
+      btn.disabled = true;
+      btn.textContent = 'Joining...';
+
+      try {
+        const vendor = await api('POST', '/api/vendors', {
+          event_id: state.event.id,
+          display_name: name,
+          booth_location: booth || null,
+        });
+        saveSession(vendor, state.event);
+        toast('Welcome, ' + name + '!', 'success');
+        navigate('#vendor');
+      } catch(e) {
+        toast(e.message || 'Failed to join', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Join Event';
+      }
+    });
+  }
+
+  // ---------- #vendor ----------
+  function renderVendor(root) {
+    const token = getToken();
+    if (!token) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <h2>My Booth</h2>
+      </div>
+      <div id="vendor-status"></div>
+      <div id="vendor-items"><div class="center muted" style="padding:24px;">Loading...</div></div>
+      <div class="spacer"></div>
+      <div id="vendor-actions"></div>
+    `;
+
+    loadVendorDashboard(root);
+  }
+
+  async function loadVendorDashboard(root) {
+    const token = getToken();
+    try {
+      const data = await api('GET', '/api/vendors/me?session=' + encodeURIComponent(token));
+      let vendor, items;
+      if (data.vendor) {
+        vendor = data.vendor;
+        items = data.items || [];
+      } else {
+        vendor = data;
+        items = data.items || [];
+      }
+      state.vendor = vendor;
+      state.items = items;
+      save('vendor', vendor);
+
+      const isLive = vendor.status === 'live' || vendor.is_live;
+      const statusDiv = $('#vendor-status', root);
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          ${vendor.logo_url ? '<div style="margin-bottom:12px;"><img class="vendor-logo-small" src="' + esc(vendor.logo_url) + '" alt="" onerror="this.style.display=\'none\'"><strong>' + esc(vendor.display_name || '') + '</strong></div>' : ''}
+          <div class="status-bar ${isLive ? 'status-live' : 'status-preview'}">
+            <div class="dot"></div>
+            ${isLive ? 'Your booth is LIVE' : 'Preview Mode — Not visible to buyers yet'}
+          </div>
+        `;
+      }
+
+      const itemsDiv = $('#vendor-items', root);
+      if (itemsDiv) {
+        if (!items.length) {
+          itemsDiv.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">&#128247;</div>
+              <p>No items yet</p>
+              <p class="small muted">Take a photo to add your first item</p>
+            </div>
+          `;
+        } else {
+          itemsDiv.innerHTML = items.map(item => `
+            <div class="vendor-item" data-id="${item.id}">
+              <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 fill=%22%2316213e%22/><text x=%2232%22 y=%2238%22 text-anchor=%22middle%22 fill=%22%238892b0%22 font-size=%2220%22>?</text></svg>'">
+              <div class="vendor-item-info">
+                <div class="item-title">${esc(item.title || 'Untitled')}</div>
+                <div class="item-meta">
+                  <span class="item-price" style="color:var(--accent);font-weight:700;">${cents(item.price_cents)}</span>
+                  <span class="badge ${badgeClass(item.status)}">${esc(item.status || 'draft')}</span>
+                </div>
+              </div>
+            </div>
+          `).join('');
+
+          $$('.vendor-item', itemsDiv).forEach(el => {
+            el.addEventListener('click', () => navigate('#edit/' + el.dataset.id));
+          });
+        }
+      }
+
+      const actionsDiv = $('#vendor-actions', root);
+      if (actionsDiv) {
+        actionsDiv.innerHTML = `
+          <button class="btn btn-primary" id="add-item-btn">&#128247; Add Item</button>
+          <div class="spacer"></div>
+          <button class="upload-logo-btn" id="upload-logo-btn">&#127912; ${vendor.logo_url ? 'Change Logo' : 'Upload Logo'}</button>
+          <input type="file" id="logo-input" accept="image/*" style="display:none;">
+          <div class="spacer"></div>
+          <button class="btn btn-secondary" id="preview-btn">&#128065; Preview Marketplace</button>
+          <div class="spacer"></div>
+          ${!isLive ? '<button class="btn btn-outline" id="golive-btn">&#9889; Go Live &mdash; $' + ((state.event && state.event.vendor_fee_cents) ? (state.event.vendor_fee_cents / 100).toFixed(2) : '9.99') + '</button>' : ''}
+        `;
+
+        $('#add-item-btn', actionsDiv).addEventListener('click', () => navigate('#camera'));
+        $('#preview-btn', actionsDiv).addEventListener('click', () => navigate('#preview'));
+
+        // Logo upload
+        const logoBtn = $('#upload-logo-btn', actionsDiv);
+        const logoInput = $('#logo-input', actionsDiv);
+        logoBtn.addEventListener('click', () => logoInput.click());
+        logoInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          logoBtn.textContent = 'Uploading...';
+          logoBtn.style.pointerEvents = 'none';
+          try {
+            const fd = new FormData();
+            fd.append('logo', file);
+            await api('POST', '/api/vendors/' + vendor.id + '/logo?session=' + encodeURIComponent(getToken()), fd, true);
+            toast('Logo uploaded!', 'success');
+            loadVendorDashboard(root);
+          } catch(e) {
+            toast(e.message || 'Logo upload failed', 'error');
+            logoBtn.textContent = vendor.logo_url ? 'Change Logo' : 'Upload Logo';
+            logoBtn.style.pointerEvents = '';
+          }
+        });
+
+        const liveBtn = $('#golive-btn', actionsDiv);
+        if (liveBtn) {
+          liveBtn.addEventListener('click', () => goLive());
+        }
+      }
+
+    } catch(e) {
+      const itemsDiv = $('#vendor-items', root);
+      if (itemsDiv) {
+        itemsDiv.innerHTML = '<div class="center" style="padding:24px;"><p class="muted">Failed to load booth</p><p class="small muted">' + esc(e.message) + '</p><div class="spacer"></div><button class="btn btn-secondary btn-small" onclick="location.reload()">Retry</button></div>';
+      }
+    }
+  }
+
+  async function goLive() {
+    const token = getToken();
+    const vendorId = getVendorId();
+    if (!token || !vendorId) { toast('Session expired', 'error'); navigate('#landing'); return; }
+
+    showSpinner('Redirecting to checkout...');
+    try {
+      const data = await api('POST', '/api/checkout', {
+        vendor_id: vendorId,
+        session_token: token,
+      });
+      if (data.checkout_url) {
+        window.location = data.checkout_url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch(e) {
+      hideSpinner();
+      toast(e.message || 'Checkout failed', 'error');
+    }
+  }
+
+  // ---------- #camera ----------
+  function renderCamera(root) {
+    const token = getToken();
+    if (!token) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
+        <h2>Add Item</h2>
+      </div>
+      <div id="photo-area">
+        <label class="photo-placeholder" for="photo-capture">
+          <div class="camera-icon">&#128247;</div>
+          <p>Tap to take a photo</p>
+          <p class="small muted">or choose multiple from gallery</p>
+        </label>
+        <input type="file" id="photo-capture" accept="image/*" capture="environment" style="display:none;">
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="gallery-btn">&#128444; Choose from Gallery (multiple)</button>
+        <input type="file" id="photo-gallery" accept="image/*" multiple style="display:none;">
+      </div>
+      <div id="photo-preview-single" style="display:none;">
+        <div class="photo-container">
+          <img id="preview-img" src="" alt="Preview">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="retake-btn">Retake</button>
+          <button class="btn btn-primary" id="use-btn">Use This Photo</button>
+        </div>
+      </div>
+      <div id="photo-preview-multi" style="display:none;">
+        <p class="muted small" style="margin-bottom:8px;">Selected photos:</p>
+        <div class="multi-thumb-grid" id="multi-thumbs"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="multi-clear-btn">Clear All</button>
+          <button class="btn btn-primary" id="multi-upload-btn">Upload All</button>
+        </div>
+        <div id="multi-progress" style="display:none;">
+          <div class="upload-progress">
+            <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-fill" style="width:0%"></div></div>
+            <div class="progress-text" id="progress-text">Preparing...</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const captureInput = $('#photo-capture', root);
+    const galleryInput = $('#photo-gallery', root);
+    const photoArea = $('#photo-area', root);
+    const singlePreview = $('#photo-preview-single', root);
+    const multiPreview = $('#photo-preview-multi', root);
+    const previewImg = $('#preview-img', root);
+    let selectedFile = null;
+    let selectedFiles = [];
+
+    // Gallery button triggers multi-file input
+    $('#gallery-btn', root).addEventListener('click', () => {
+      galleryInput.click();
+    });
+
+    // Single capture
+    captureInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedFile = file;
+      selectedFiles = [];
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      photoArea.style.display = 'none';
+      multiPreview.style.display = 'none';
+      singlePreview.style.display = 'block';
+    });
+
+    // Multi gallery select
+    galleryInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+
+      if (files.length === 1) {
+        // Single file from gallery — use single flow
+        selectedFile = files[0];
+        selectedFiles = [];
+        const url = URL.createObjectURL(files[0]);
+        previewImg.src = url;
+        photoArea.style.display = 'none';
+        multiPreview.style.display = 'none';
+        singlePreview.style.display = 'block';
+        return;
+      }
+
+      // Multiple files
+      selectedFile = null;
+      selectedFiles = files;
+      photoArea.style.display = 'none';
+      singlePreview.style.display = 'none';
+      multiPreview.style.display = 'block';
+      renderMultiThumbs(root);
+    });
+
+    function renderMultiThumbs(root) {
+      const grid = $('#multi-thumbs', root);
+      grid.innerHTML = selectedFiles.map((f, i) => {
+        const url = URL.createObjectURL(f);
+        return '<div class="thumb-cell"><img src="' + url + '" alt=""><button class="remove-thumb" data-idx="' + i + '">&times;</button></div>';
+      }).join('');
+
+      $$('.remove-thumb', grid).forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.idx);
+          selectedFiles.splice(idx, 1);
+          if (selectedFiles.length === 0) {
+            multiPreview.style.display = 'none';
+            photoArea.style.display = 'block';
+            galleryInput.value = '';
+          } else {
+            renderMultiThumbs(root);
+          }
+        });
+      });
+
+      const uploadBtn = $('#multi-upload-btn', root);
+      uploadBtn.textContent = 'Upload All (' + selectedFiles.length + ')';
+    }
+
+    // Retake (single)
+    $('#retake-btn', root).addEventListener('click', () => {
+      selectedFile = null;
+      captureInput.value = '';
+      galleryInput.value = '';
+      singlePreview.style.display = 'none';
+      photoArea.style.display = 'block';
+    });
+
+    // Clear all (multi)
+    $('#multi-clear-btn', root).addEventListener('click', () => {
+      selectedFiles = [];
+      galleryInput.value = '';
+      multiPreview.style.display = 'none';
+      photoArea.style.display = 'block';
+    });
+
+    // Use single photo
+    $('#use-btn', root).addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      showSpinner('Uploading & analyzing with AI...');
+      try {
+        const fd = new FormData();
+        fd.append('photo', selectedFile);
+        fd.append('event_id', getEventId());
+        fd.append('vendor_id', getVendorId());
+        fd.append('session_token', getToken());
+        fd.append('type', 'product');
+
+        const item = await api('POST', '/api/items', fd, true);
+        hideSpinner();
+        toast('Item created!', 'success');
+        state.currentItem = item;
+        state.items.push(item);
+        navigate('#edit/' + item.id);
+      } catch(e) {
+        hideSpinner();
+        toast(e.message || 'Upload failed', 'error');
+      }
+    });
+
+    // Upload all (multi)
+    $('#multi-upload-btn', root).addEventListener('click', async () => {
+      if (!selectedFiles.length) return;
+
+      const total = selectedFiles.length;
+      const progressDiv = $('#multi-progress', root);
+      const progressFill = $('#progress-fill', root);
+      const progressText = $('#progress-text', root);
+      const uploadBtn = $('#multi-upload-btn', root);
+      const clearBtn = $('#multi-clear-btn', root);
+
+      uploadBtn.disabled = true;
+      clearBtn.disabled = true;
+      progressDiv.style.display = 'block';
+
+      let completed = 0;
+      let failed = 0;
+
+      for (let i = 0; i < total; i++) {
+        progressText.textContent = 'Analyzing ' + (i + 1) + ' of ' + total + ' items...';
+        progressFill.style.width = ((i / total) * 100) + '%';
+
+        try {
+          const fd = new FormData();
+          fd.append('photo', selectedFiles[i]);
+          fd.append('event_id', getEventId());
+          fd.append('vendor_id', getVendorId());
+          fd.append('session_token', getToken());
+          fd.append('type', 'product');
+
+          const item = await api('POST', '/api/items', fd, true);
+          state.items.push(item);
+          completed++;
+        } catch(e) {
+          failed++;
+        }
+      }
+
+      progressFill.style.width = '100%';
+      progressText.textContent = 'Done! ' + completed + ' uploaded' + (failed ? ', ' + failed + ' failed' : '');
+
+      if (completed > 0) {
+        toast(completed + ' item' + (completed !== 1 ? 's' : '') + ' created!' + (failed ? ' (' + failed + ' failed)' : ''), 'success');
+        setTimeout(() => navigate('#vendor'), 1000);
+      } else {
+        toast('All uploads failed', 'error');
+        uploadBtn.disabled = false;
+        clearBtn.disabled = false;
+      }
+    });
+  }
+
+  // ---------- #edit/:id ----------
+  function renderEdit(root, itemId) {
+    const token = getToken();
+    if (!token) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
+        <h2>Edit Item</h2>
+      </div>
+      <div id="edit-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    loadEditItem(root, itemId);
+  }
+
+  async function loadEditItem(root, itemId) {
+    const contentDiv = $('#edit-content', root);
+
+    // Find item in state - check currentItem first (freshly created items)
+    let item = null;
+    if (state.currentItem && String(state.currentItem.id) === String(itemId)) {
+      item = state.currentItem;
+    } else {
+      item = state.items.find(i => String(i.id) === String(itemId));
+    }
+    if (!item) {
+      try {
+        await refreshVendor();
+        item = state.items.find(i => String(i.id) === String(itemId));
+      } catch(e) {}
+    }
+    if (!item) {
+      contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
+      return;
+    }
+
+    state.currentItem = item;
+
+    const pUrl = photoUrl(item);
+    contentDiv.innerHTML = `
+      ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+      <div class="input-group">
+        <label>Title</label>
+        <input type="text" id="edit-title" value="${esc(item.title || '')}">
+      </div>
+      <div class="input-group">
+        <label>Description</label>
+        <textarea id="edit-desc">${esc(item.description || '')}</textarea>
+      </div>
+      <div class="input-group">
+        <label>Category</label>
+        <input type="text" id="edit-category" value="${esc(item.category || '')}">
+      </div>
+      <div class="input-group">
+        <label>Condition</label>
+        <select id="edit-condition">
+          <option value="">Select condition</option>
+          <option value="new" ${item.condition === 'new' ? 'selected' : ''}>New</option>
+          <option value="like_new" ${item.condition === 'like_new' ? 'selected' : ''}>Like New</option>
+          <option value="good" ${item.condition === 'good' ? 'selected' : ''}>Good</option>
+          <option value="fair" ${item.condition === 'fair' ? 'selected' : ''}>Fair</option>
+          <option value="poor" ${item.condition === 'poor' ? 'selected' : ''}>Poor</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <div class="input-group" style="flex:1;">
+          <label>Price ($)</label>
+          <input type="number" id="edit-price" step="0.01" min="0" value="${item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ''}">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Price Note</label>
+          <select id="edit-pnote">
+            <option value="">None</option>
+            <option value="OBO" ${item.price_note === 'OBO' ? 'selected' : ''}>OBO</option>
+            <option value="Firm" ${item.price_note === 'Firm' ? 'selected' : ''}>Firm</option>
+            <option value="Negotiable" ${item.price_note === 'Negotiable' ? 'selected' : ''}>Negotiable</option>
+            <option value="Free" ${item.price_note === 'Free' ? 'selected' : ''}>Free</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Vendor Notes (private)</label>
+        <textarea id="edit-notes" placeholder="Notes for yourself...">${esc(item.vendor_notes || '')}</textarea>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="approve-btn">${item.status === 'approved' || item.status === 'listed' ? 'Save Changes' : 'Approve & Save'}</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="another-btn">&#128247; Add Another Item</button>
+      ${item.status !== 'sold' ? '<div class="spacer"></div><button class="btn btn-outline btn-small" id="sold-btn" style="color:#f87171;border-color:#f87171;">Mark as Sold</button>' : ''}
+    `;
+
+    $('#approve-btn', contentDiv).addEventListener('click', async () => {
+      const btn = $('#approve-btn', contentDiv);
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const priceVal = parseFloat($('#edit-price', contentDiv).value);
+      const priceCents = isNaN(priceVal) ? 0 : Math.round(priceVal * 100);
+
+      try {
+        await api('PUT', '/api/items/' + (item.id), {
+          title: $('#edit-title', contentDiv).value.trim(),
+          description: $('#edit-desc', contentDiv).value.trim(),
+          category: $('#edit-category', contentDiv).value.trim() || null,
+          condition: $('#edit-condition', contentDiv).value || null,
+          price_cents: priceCents,
+          price_note: $('#edit-pnote', contentDiv).value || null,
+          vendor_notes: $('#edit-notes', contentDiv).value.trim() || null,
+          status: 'approved',
+          session_token: getToken(),
+        });
+        toast('Item saved!', 'success');
+        navigate('#vendor');
+      } catch(e) {
+        toast(e.message || 'Save failed', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Approve & Save';
+      }
+    });
+
+    $('#another-btn', contentDiv).addEventListener('click', () => navigate('#camera'));
+
+    const soldBtn = $('#sold-btn', contentDiv);
+    if (soldBtn) {
+      soldBtn.addEventListener('click', async () => {
+        soldBtn.disabled = true;
+        try {
+          await api('PUT', '/api/items/' + item.id + '/sold', { session_token: getToken() });
+          toast('Marked as sold!', 'success');
+          navigate('#vendor');
+        } catch(e) {
+          toast(e.message || 'Failed', 'error');
+          soldBtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  // ---------- #preview ----------
+  function renderPreview(root) {
+    const token = getToken();
+    if (!token) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#vendor'">&larr;</button>
+        <h2>Preview</h2>
+      </div>
+      <div class="banner">This is how buyers see your booth</div>
+      <div id="preview-banner"></div>
+      <div id="preview-stats"></div>
+      <div id="preview-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
+      <div class="spacer-lg"></div>
+      <div id="preview-actions"></div>
+    `;
+
+    loadPreview(root);
+  }
+
+  async function loadPreview(root) {
+    const eventId = getEventId();
+
+    // Load stats
+    try {
+      const stats = await api('GET', '/api/events/' + eventId + '/stats');
+      const statsDiv = $('#preview-stats', root);
+      if (statsDiv) {
+        statsDiv.innerHTML = `
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-num">${stats.vendor_count || 0}</div>
+              <div class="stat-label">Vendors</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num">${stats.item_count || 0}</div>
+              <div class="stat-label">Items</div>
+            </div>
+          </div>
+        `;
+      }
+    } catch(e) { /* stats are optional */ }
+
+    // Load vendor items
+    try {
+      await refreshVendor();
+
+      // Render banner/logo
+      const bannerDiv = $('#preview-banner', root);
+      if (bannerDiv && state.vendor) {
+        if (state.vendor.logo_url) {
+          bannerDiv.innerHTML = '<div class="vendor-banner"><img src="' + esc(state.vendor.logo_url) + '" alt="' + esc(state.vendor.display_name || '') + '" onerror="this.parentElement.style.display=\'none\'"></div>';
+        } else {
+          bannerDiv.innerHTML = `
+            <div class="vendor-banner-placeholder">
+              <h1>${esc(state.vendor.display_name || 'My Booth')}</h1>
+              ${state.vendor.booth_location ? '<p>' + esc(state.vendor.booth_location) + '</p>' : ''}
+            </div>
+          `;
+        }
+      }
+
+      const gridDiv = $('#preview-grid', root);
+      if (gridDiv) {
+        const items = state.items.filter(i => i.status === 'approved' || i.status === 'listed');
+        if (!items.length) {
+          gridDiv.innerHTML = '<div class="empty-state"><p class="muted">No approved items yet</p></div>';
+        } else {
+          gridDiv.innerHTML = '<div class="item-grid">' + items.map(item => `
+            <div class="item-card" data-id="${item.id}">
+              <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+              <div class="item-info">
+                <div class="item-title">${esc(item.title || 'Untitled')}</div>
+                <div class="item-price">${cents(item.price_cents)}</div>
+              </div>
+            </div>
+          `).join('') + '</div>';
+        }
+      }
+    } catch(e) {
+      const gridDiv = $('#preview-grid', root);
+      if (gridDiv) gridDiv.innerHTML = '<p class="center muted">Failed to load items</p>';
+    }
+
+    // Actions
+    const isLive = state.vendor && (state.vendor.status === 'live' || state.vendor.is_live);
+    const actionsDiv = $('#preview-actions', root);
+    if (actionsDiv && !isLive) {
+      actionsDiv.innerHTML = '<button class="btn btn-primary" id="golive-preview">&#9889; Go Live &mdash; $' + ((state.event && state.event.vendor_fee_cents) ? (state.event.vendor_fee_cents / 100).toFixed(2) : '9.99') + '</button>';
+      $('#golive-preview', actionsDiv).addEventListener('click', () => goLive());
+    }
+  }
+
+  // ---------- #browse ----------
+  function renderBrowse(root) {
+    const eventId = getEventId();
+    if (!eventId) { navigate('#landing'); return; }
+
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <h2>${esc(state.event ? state.event.name : 'Marketplace')}</h2>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search items...">
+      </div>
+      <div class="filter-row">
+        <select id="filter-category">
+          <option value="">All Categories</option>
+        </select>
+        <select id="filter-sort">
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select>
+      </div>
+      <div id="browse-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    let searchTimeout = null;
+    const searchInput = $('#search-input', root);
+    const catSelect = $('#filter-category', root);
+    const sortSelect = $('#filter-sort', root);
+
+    function doSearch() {
+      loadBrowseItems(root, searchInput.value.trim(), catSelect.value, sortSelect.value);
+    }
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(doSearch, 350);
+    });
+    catSelect.addEventListener('change', doSearch);
+    sortSelect.addEventListener('change', doSearch);
+
+    // Initial load
+    doSearch();
+
+    // Populate categories from results
+    loadCategories(catSelect);
+  }
+
+  async function loadCategories(select) {
+    // We'll populate from browse results
+    // For now the select has "All Categories" only
+  }
+
+  async function loadBrowseItems(root, query, category, sort) {
+    const eventId = getEventId();
+    const gridDiv = $('#browse-grid', root);
+    if (!gridDiv) return;
+
+    let url = '/api/items?event_id=' + encodeURIComponent(eventId) + '&status=listed';
+    if (query) url += '&q=' + encodeURIComponent(query);
+    if (category) url += '&category=' + encodeURIComponent(category);
+    if (sort) url += '&sort=' + encodeURIComponent(sort);
+
+    try {
+      const items = await api('GET', url);
+      const list = Array.isArray(items) ? items : (items.items || []);
+      state.browseItems = list;
+
+      // Update categories dropdown
+      const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
+      const catSelect = $('#filter-category', root);
+      if (catSelect && cats.length) {
+        const currentVal = catSelect.value;
+        const optionsHtml = '<option value="">All Categories</option>' + cats.map(c => `<option value="${esc(c)}" ${c === currentVal ? 'selected' : ''}>${esc(c)}</option>`).join('');
+        catSelect.innerHTML = optionsHtml;
+      }
+
+      if (!list.length) {
+        gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128270;</div><p>No items found</p></div>';
+        return;
+      }
+
+      gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => `
+        <div class="item-card" data-id="${item.id}">
+          <img src="${esc(photoUrl(item))}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+          <div class="item-info">
+            <div class="item-title">${esc(item.title || 'Untitled')}</div>
+            <div class="item-price">${cents(item.price_cents)}</div>
+            ${item.vendor_name ? '<div class="item-vendor">' + esc(item.vendor_name) + '</div>' : ''}
+          </div>
+        </div>
+      `).join('') + '</div>';
+
+      $$('.item-card', gridDiv).forEach(el => {
+        el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+      });
+
+    } catch(e) {
+      gridDiv.innerHTML = '<p class="center muted">Failed to load items: ' + esc(e.message) + '</p>';
+    }
+  }
+
+  // ---------- #item/:id ----------
+  function renderItemDetail(root, itemId) {
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" id="item-back">&larr;</button>
+        <h2>Item Details</h2>
+      </div>
+      <div id="item-content"><div class="center muted" style="padding:24px;">Loading...</div></div>
+    `;
+
+    $('#item-back', root).addEventListener('click', () => {
+      // Go back to browse if we came from there, otherwise vendor
+      const token = getToken();
+      if (token && state.items.find(i => String(i.id) === String(itemId))) {
+        navigate('#vendor');
+      } else {
+        navigate('#browse');
+      }
+    });
+
+    loadItemDetail(root, itemId);
+  }
+
+  async function loadItemDetail(root, itemId) {
+    const contentDiv = $('#item-content', root);
+
+    // Check local state first
+    let item = state.browseItems.find(i => String(i.id) === String(itemId))
+             || state.items.find(i => String(i.id) === String(itemId));
+
+    if (!item) {
+      try {
+        item = await api('GET', '/api/items/' + itemId);
+      } catch(e) {
+        contentDiv.innerHTML = '<p class="center muted">Item not found</p>';
+        return;
+      }
+    }
+
+    const pUrl = photoUrl(item);
+    const conditionLabels = { new: 'New', like_new: 'Like New', good: 'Good', fair: 'Fair', poor: 'Poor' };
+
+    contentDiv.innerHTML = `
+      ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+      <h1 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h1>
+      <div style="margin-bottom:16px;">
+        <span class="detail-price">${cents(item.price_cents)}</span>
+        ${item.price_note ? '<span class="detail-note">' + esc(item.price_note) + '</span>' : ''}
+      </div>
+      ${item.condition ? '<p class="muted small" style="margin-bottom:12px;">Condition: <strong style="color:var(--text);">' + esc(conditionLabels[item.condition] || item.condition) + '</strong></p>' : ''}
+      ${item.description ? '<div class="card"><p>' + esc(item.description) + '</p></div>' : ''}
+      ${item.category ? '<p class="muted small" style="margin-bottom:16px;">Category: ' + esc(item.category) + '</p>' : ''}
+      <hr class="divider">
+      <div class="card" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0;">${esc((item.vendor_name || '?')[0].toUpperCase())}</div>
+        <div>
+          <div style="font-weight:600;">${esc(item.vendor_name || 'Vendor')}</div>
+          ${item.booth_location ? '<div class="muted small">' + esc(item.booth_location) + '</div>' : ''}
+        </div>
+      </div>
+      <div class="spacer-lg"></div>
+      <button class="btn btn-primary" id="visit-booth-btn">I'm Interested &mdash; Visit Booth</button>
+    `;
+
+    $('#visit-booth-btn', contentDiv).addEventListener('click', () => {
+      const boothInfo = item.booth_location || 'their booth';
+      toast('Head to ' + boothInfo + ' to see this item!', 'success');
+    });
+  }
+
+  // ---------- #create ----------
+  function renderCreate(root) {
+    root.innerHTML = `
+      <div class="header">
+        <button class="back-btn" onclick="location.hash='#landing'">&larr;</button>
+        <h2>Create Event</h2>
+      </div>
+      <div id="create-form">
+        <div class="card">
+          <div class="input-group">
+            <label>Event Name *</label>
+            <input type="text" id="evt-name" placeholder="e.g. Spring Community Sale">
+          </div>
+          <div class="input-group">
+            <label>Description</label>
+            <textarea id="evt-desc" placeholder="Tell people about your event..."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Location</label>
+            <input type="text" id="evt-location" placeholder="e.g. Central Park Pavilion">
+          </div>
+          <div class="input-group">
+            <label>Start Date & Time</label>
+            <input type="datetime-local" id="evt-start">
+          </div>
+          <div class="input-group">
+            <label>End Date & Time</label>
+            <input type="datetime-local" id="evt-end">
+          </div>
+          <div class="input-group">
+            <label>Vendor Fee ($)</label>
+            <input type="number" id="evt-fee" step="0.01" min="0" value="9.99">
+          </div>
+          <div class="spacer"></div>
+          <button class="btn btn-primary" id="create-btn">Create Event</button>
+        </div>
+      </div>
+      <div id="create-result" style="display:none;"></div>
+    `;
+
+    $('#create-btn', root).addEventListener('click', async () => {
+      const name = $('#evt-name', root).value.trim();
+      if (!name) { toast('Event name is required', 'error'); return; }
+
+      const btn = $('#create-btn', root);
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      const feeVal = parseFloat($('#evt-fee', root).value);
+      const feeCents = isNaN(feeVal) ? 999 : Math.round(feeVal * 100);
+
+      const startVal = $('#evt-start', root).value;
+      const endVal = $('#evt-end', root).value;
+
+      try {
+        const event = await api('POST', '/api/events', {
+          name: name,
+          type: 'marketplace',
+          description: $('#evt-desc', root).value.trim() || null,
+          location_name: $('#evt-location', root).value.trim() || null,
+          starts_at: startVal ? new Date(startVal).toISOString() : null,
+          ends_at: endVal ? new Date(endVal).toISOString() : null,
+          vendor_fee_cents: feeCents,
+        });
+
+        const code = event.join_code || event.joinCode || event.code || '???';
+        const shareUrl = window.location.origin + '/shop/#landing';
+        const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareUrl + '?code=' + code);
+
+        $('#create-form', root).style.display = 'none';
+        const resultDiv = $('#create-result', root);
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <div class="center">
+            <h1>Event Created!</h1>
+            <p class="muted">Share this code with vendors</p>
+            <div class="join-code-display">${esc(code)}</div>
+            <div class="qr-container">
+              <img src="${qrUrl}" alt="QR Code" width="200" height="200">
+              <p class="muted small" style="margin-top:8px;">Scan to join</p>
+            </div>
+            <div class="spacer-lg"></div>
+            <div class="card" style="text-align:left;">
+              <h3>${esc(event.name)}</h3>
+              ${event.location_name ? '<p class="muted small">' + esc(event.location_name) + '</p>' : ''}
+              ${startVal ? '<p class="muted small">' + formatDate(startVal) + '</p>' : ''}
+            </div>
+            <div class="spacer"></div>
+            <button class="btn btn-secondary" id="copy-code-btn">Copy Code</button>
+            <div class="spacer"></div>
+            <a class="link" href="#landing">Go to Event</a>
+          </div>
+        `;
+
+        saveSession(null, event);
+
+        $('#copy-code-btn', resultDiv).addEventListener('click', () => {
+          navigator.clipboard.writeText(code).then(() => {
+            toast('Code copied!', 'success');
+          }).catch(() => {
+            toast('Code: ' + code, 'success');
+          });
+        });
+
+      } catch(e) {
+        toast(e.message || 'Failed to create event', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Event';
+      }
+    });
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  function init() {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/shop/sw.js').catch(() => {});
+    }
+
+    // Load saved session
+    loadSession();
+
+    // Check Stripe return
+    if (checkStripeReturn()) return;
+
+    // Render initial screen
+    if (!window.location.hash || window.location.hash === '#') {
+      // If vendor has a session, go to vendor dashboard
+      if (getToken()) {
+        window.location.hash = '#vendor';
+      } else {
+        window.location.hash = '#landing';
+      }
+    }
+    render();
+  }
+
+  // Start the app
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>

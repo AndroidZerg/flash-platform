@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2ec47a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FlashMenu</title>
+<link rel="manifest" href="/menu/manifest.json">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a2e;color:#ffffff;overflow-x:hidden}
+#app{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:0 16px 32px}
+a{color:#2ec47a;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,select,textarea{font-family:inherit;font-size:16px;outline:none;border:none}
+img{max-width:100%;display:block}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:16px 0;position:sticky;top:0;background:#1a1a2e;z-index:100}
+.header-logo{font-size:22px;font-weight:800;color:#2ec47a;letter-spacing:-0.5px}
+.header-back{background:none;color:#8892b0;font-size:24px;padding:4px 8px}
+.header-back:hover{color:#ffffff}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:12px;font-size:16px;font-weight:600;transition:all 0.2s}
+.btn-primary{background:#2ec47a;color:#ffffff}
+.btn-primary:hover{background:#27a968}
+.btn-primary:disabled{background:#3a4a5e;color:#5a6a7e;cursor:not-allowed}
+.btn-secondary{background:#16213e;color:#ffffff;border:1px solid #2a3a5e}
+.btn-secondary:hover{background:#1a2a4e}
+.btn-danger{background:#e74c3c;color:#ffffff}
+.btn-danger:hover{background:#c0392b}
+.btn-full{width:100%}
+.btn-sm{padding:8px 16px;font-size:14px;border-radius:8px}
+
+/* Cards */
+.card{background:#16213e;border-radius:16px;padding:20px;margin-bottom:12px}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:#8892b0;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;padding:12px 16px;background:#0f1527;border:1px solid #2a3a5e;border-radius:10px;color:#ffffff;font-size:16px;transition:border-color 0.2s}
+.form-input:focus{border-color:#2ec47a}
+.form-input::placeholder{color:#4a5a7e}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' fill='none' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+textarea.form-input{resize:vertical;min-height:80px}
+
+/* Checkbox group */
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px}
+.checkbox-tag{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#0f1527;border:1px solid #2a3a5e;border-radius:20px;font-size:13px;color:#8892b0;cursor:pointer;transition:all 0.2s;user-select:none}
+.checkbox-tag input{display:none}
+.checkbox-tag.active{border-color:#2ec47a;color:#2ec47a;background:#0f2520}
+.checkbox-tag .icon{font-size:15px}
+
+/* Spice selector */
+.spice-selector{display:flex;gap:8px}
+.spice-option{padding:8px 16px;background:#0f1527;border:1px solid #2a3a5e;border-radius:20px;font-size:13px;color:#8892b0;cursor:pointer;transition:all 0.2s}
+.spice-option.active{border-color:#2ec47a;color:#2ec47a;background:#0f2520}
+
+/* Status badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;text-transform:uppercase}
+.badge-draft{background:#2a3a5e;color:#8892b0}
+.badge-listed{background:#0f2520;color:#2ec47a}
+.badge-sold{background:#1a1a2e;color:#e74c3c}
+
+/* Dietary badges */
+.dietary-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#0f2520;color:#2ec47a;border:1px solid #1a3a2e}
+.dietary-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+
+/* Spice indicator */
+.spice-indicator{display:inline-flex;align-items:center;gap:2px;font-size:13px}
+.spice-none{color:#8892b0}
+.spice-mild{color:#f1c40f}
+.spice-medium{color:#e67e22}
+.spice-hot{color:#e74c3c}
+
+/* Grid */
+.items-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.item-card{background:#16213e;border-radius:12px;overflow:hidden;cursor:pointer;transition:transform 0.15s}
+.item-card:active{transform:scale(0.97)}
+.item-card-img{width:100%;aspect-ratio:1;object-fit:cover;background:#0f1527}
+.item-card-body{padding:10px}
+.item-card-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-card-price{font-size:15px;font-weight:700;color:#2ec47a;margin-top:2px}
+.item-card-vendor{font-size:11px;color:#8892b0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-card-dietary{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.item-card-dietary .dietary-icon{font-size:13px;padding:2px 5px;background:#0f2520;border-radius:8px}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-chip{flex-shrink:0;padding:8px 14px;background:#16213e;border:1px solid #2a3a5e;border-radius:20px;font-size:13px;color:#8892b0;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.filter-chip.active{background:#0f2520;border-color:#2ec47a;color:#2ec47a}
+
+/* Search */
+.search-bar{position:relative;margin-bottom:8px}
+.search-bar input{width:100%;padding:12px 16px 12px 44px;background:#16213e;border:1px solid #2a3a5e;border-radius:12px;color:#ffffff;font-size:15px}
+.search-bar input:focus{border-color:#2ec47a}
+.search-bar input::placeholder{color:#4a5a7e}
+.search-bar .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#4a5a7e;font-size:18px}
+
+/* Landing */
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center}
+.landing-icon{font-size:72px;margin-bottom:16px}
+.landing-title{font-size:36px;font-weight:800;color:#2ec47a;margin-bottom:8px;letter-spacing:-1px}
+.landing-sub{font-size:16px;color:#8892b0;margin-bottom:40px;max-width:300px}
+.landing-btns{display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px}
+
+/* Loading / Error */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;color:#8892b0}
+.spinner{width:32px;height:32px;border:3px solid #2a3a5e;border-top-color:#2ec47a;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:#2a1520;border:1px solid #e74c3c;border-radius:12px;padding:16px;color:#e74c3c;font-size:14px;margin:12px 0}
+.success-box{background:#0f2520;border:1px solid #2ec47a;border-radius:12px;padding:16px;color:#2ec47a;font-size:14px;margin:12px 0}
+
+/* Vendor dashboard */
+.vendor-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-box{background:#0f1527;border-radius:10px;padding:12px;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:#2ec47a}
+.stat-label{font-size:11px;color:#8892b0;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+/* Vendor item list */
+.vendor-item{display:flex;gap:12px;align-items:center;padding:12px;background:#0f1527;border-radius:10px;margin-bottom:8px;cursor:pointer}
+.vendor-item-img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#16213e}
+.vendor-item-info{flex:1;min-width:0}
+.vendor-item-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vendor-item-meta{font-size:12px;color:#8892b0;margin-top:2px}
+
+/* Camera */
+.camera-container{position:relative;width:100%;max-width:400px;margin:0 auto}
+.camera-video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;background:#000}
+.camera-canvas{display:none}
+.camera-controls{display:flex;justify-content:center;gap:16px;margin-top:16px}
+.camera-btn{width:64px;height:64px;border-radius:50%;background:#2ec47a;display:flex;align-items:center;justify-content:center;font-size:28px;transition:transform 0.15s}
+.camera-btn:active{transform:scale(0.9)}
+.camera-btn-secondary{background:#16213e;border:2px solid #2a3a5e}
+.upload-zone{border:2px dashed #2a3a5e;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:border-color 0.2s}
+.upload-zone:hover{border-color:#2ec47a}
+.upload-zone-icon{font-size:48px;margin-bottom:12px}
+.upload-zone-text{color:#8892b0;font-size:14px}
+
+/* Preview image */
+.preview-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;margin-bottom:16px;background:#0f1527}
+
+/* Detail page */
+.detail-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;margin-bottom:16px;background:#0f1527}
+.detail-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.detail-price{font-size:24px;font-weight:800;color:#2ec47a;margin-bottom:12px}
+.detail-section{margin-bottom:16px}
+.detail-section-title{font-size:13px;font-weight:600;color:#8892b0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.detail-desc{font-size:15px;line-height:1.5;color:#c4c9de}
+.detail-vendor{display:flex;align-items:center;gap:10px;padding:12px;background:#0f1527;border-radius:10px}
+.detail-vendor-avatar{width:40px;height:40px;border-radius:50%;background:#2ec47a;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.detail-vendor-name{font-size:15px;font-weight:600}
+.detail-vendor-loc{font-size:12px;color:#8892b0}
+
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:#8892b0}
+.empty-state-icon{font-size:48px;margin-bottom:12px}
+.empty-state-text{font-size:14px}
+
+/* Utility */
+.text-muted{color:#8892b0}
+.text-center{text-align:center}
+.mt-8{margin-top:8px}
+.mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
+.mt-24{margin-top:24px}
+.mb-8{margin-bottom:8px}
+.mb-16{margin-bottom:16px}
+.gap-8{gap:8px}
+.flex{display:flex}
+.flex-col{flex-direction:column}
+.flex-between{justify-content:space-between}
+.flex-center{align-items:center}
+.hidden{display:none!important}
+
+/* Stripe return banner */
+.stripe-banner{padding:12px;border-radius:10px;text-align:center;font-weight:600;margin-bottom:16px}
+.stripe-success{background:#0f2520;color:#2ec47a;border:1px solid #2ec47a}
+.stripe-cancel{background:#2a1520;color:#e74c3c;border:1px solid #e74c3c}
+
+/* Event cards */
+.event-card:hover{border-color:#2ec47a!important}
+.event-card:active{transform:scale(0.98)}
+
+/* Multi-upload thumbs */
+#multiThumbs img{border:1px solid #2a3a5e}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+'use strict';
+
+/* ─── State ─── */
+const state = {
+  screen: 'landing',
+  screenParam: null,
+  event: null,
+  vendor: null,
+  items: [],
+  browseItems: [],
+  currentItem: null,
+  loading: false,
+  error: null,
+  cameraStream: null,
+  capturedPhoto: null,
+  filters: { category: '', dietary: [], sort: 'newest', q: '' },
+  stripeResult: null
+};
+
+/* ─── LocalStorage ─── */
+function saveSession() {
+  if (state.vendor) {
+    localStorage.setItem('fm_session', state.vendor.session_token);
+    localStorage.setItem('fm_vendor_id', state.vendor.id);
+    localStorage.setItem('fm_event_id', state.vendor.event_id);
+  }
+}
+function loadSession() {
+  return {
+    session: localStorage.getItem('fm_session'),
+    vendorId: localStorage.getItem('fm_vendor_id'),
+    eventId: localStorage.getItem('fm_event_id')
+  };
+}
+function clearSession() {
+  localStorage.removeItem('fm_session');
+  localStorage.removeItem('fm_vendor_id');
+  localStorage.removeItem('fm_event_id');
+}
+
+/* ─── API ─── */
+const API = '/api';
+
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+  return res.json();
+}
+async function apiPost(path, body, isFormData) {
+  const opts = { method: 'POST' };
+  if (isFormData) { opts.body = body; }
+  else { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+  const res = await fetch(API + path, opts);
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+  return res.json();
+}
+async function apiPut(path, body, isFormData) {
+  const opts = { method: 'PUT' };
+  if (isFormData) { opts.body = body; }
+  else { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+  const res = await fetch(API + path, opts);
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+  return res.json();
+}
+
+/* ─── Router ─── */
+function navigate(screen, param) {
+  state.screen = screen;
+  state.screenParam = param || null;
+  state.error = null;
+  if (param) window.location.hash = '#' + screen + '/' + param;
+  else window.location.hash = '#' + screen;
+  render();
+}
+
+function parseHash() {
+  const hash = window.location.hash.slice(1) || 'landing';
+  const parts = hash.split('/');
+  return { screen: parts[0], param: parts[1] || null };
+}
+
+window.addEventListener('hashchange', () => {
+  const { screen, param } = parseHash();
+  state.screen = screen;
+  state.screenParam = param;
+  state.error = null;
+  render();
+});
+
+/* ─── Helpers ─── */
+function $(sel, parent) { return (parent || document).querySelector(sel); }
+function $$(sel, parent) { return (parent || document).querySelectorAll(sel); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function centsToDollars(c) { return c != null ? '$' + (c / 100).toFixed(2) : ''; }
+
+function dietaryIcon(tag) {
+  const map = {
+    'vegetarian': '🌿',
+    'vegan': '🌱',
+    'gluten-free': 'GF',
+    'dairy-free': 'DF',
+    'nut-free': 'NF'
+  };
+  return map[tag] || tag;
+}
+
+function dietaryLabel(tag) {
+  const map = {
+    'vegetarian': 'Vegetarian',
+    'vegan': 'Vegan',
+    'gluten-free': 'Gluten-Free',
+    'dairy-free': 'Dairy-Free',
+    'nut-free': 'Nut-Free'
+  };
+  return map[tag] || tag;
+}
+
+function spiceHtml(level) {
+  if (!level || level === 'none' || level === 'None') return '<span class="spice-indicator spice-none">No spice</span>';
+  if (level === 'Mild') return '<span class="spice-indicator spice-mild">🌶️ Mild</span>';
+  if (level === 'Medium') return '<span class="spice-indicator spice-medium">🌶️🌶️ Medium</span>';
+  if (level === 'Hot') return '<span class="spice-indicator spice-hot">🌶️🌶️🌶️ Hot</span>';
+  return '<span class="spice-indicator spice-none">' + esc(level) + '</span>';
+}
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getDietaryTags(item) {
+  const ai = item.ai_description || {};
+  return ai.dietary_info || [];
+}
+
+function getSpiceLevel(item) {
+  const ai = item.ai_description || {};
+  return ai.spice_level || 'none';
+}
+
+function dietaryBadgesHtml(tags) {
+  if (!tags || !tags.length) return '';
+  return '<div class="dietary-badges">' + tags.map(t => '<span class="dietary-badge">' + dietaryIcon(t) + ' ' + dietaryLabel(t) + '</span>').join('') + '</div>';
+}
+
+function dietaryIconsHtml(tags) {
+  if (!tags || !tags.length) return '';
+  return '<div class="item-card-dietary">' + tags.map(t => '<span class="dietary-icon" title="' + esc(dietaryLabel(t)) + '">' + dietaryIcon(t) + '</span>').join('') + '</div>';
+}
+
+/* ─── Stripe URL params ─── */
+function checkStripeReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const session = params.get('session');
+  const paid = params.get('paid');
+  if (session && paid !== null) {
+    localStorage.setItem('fm_session', session);
+    state.stripeResult = paid === 'true' ? 'success' : 'cancelled';
+    // Clean URL
+    const url = new URL(window.location);
+    url.searchParams.delete('session');
+    url.searchParams.delete('paid');
+    url.searchParams.delete('product');
+    window.history.replaceState({}, '', url.pathname + url.hash);
+    // Auto-navigate to vendor screen
+    window.location.hash = '#vendor';
+  }
+}
+
+/* ─── Render Engine ─── */
+function render() {
+  const app = document.getElementById('app');
+  stopCamera();
+  switch (state.screen) {
+    case 'landing': app.innerHTML = renderLanding(); bindLanding(); break;
+    case 'join': app.innerHTML = renderJoin(); bindJoin(); break;
+    case 'vendor': app.innerHTML = renderVendorLoading(); loadVendor(); break;
+    case 'camera': app.innerHTML = renderCamera(); bindCamera(); break;
+    case 'edit': app.innerHTML = renderEditLoading(); loadEdit(); break;
+    case 'preview': app.innerHTML = renderPreviewLoading(); loadPreview(); break;
+    case 'browse': app.innerHTML = renderBrowseLoading(); loadBrowse(); break;
+    case 'item': app.innerHTML = renderItemLoading(); loadItem(); break;
+    case 'create': app.innerHTML = renderCreate(); bindCreate(); break;
+    default: app.innerHTML = renderLanding();
+  }
+}
+
+/* ─── Screen: Landing ─── */
+function renderLanding() {
+  return `
+    <div class="header">
+      <div class="header-logo">FlashMenu</div>
+      <button class="btn btn-sm btn-secondary" onclick="navigate('create')">+ Event</button>
+    </div>
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="font-size:48px;margin-bottom:8px">🍽️</div>
+      <div style="font-size:14px;color:#8892b0">Discover food events near you</div>
+    </div>
+    <div id="eventsLoading" class="loading"><div class="spinner"></div>Finding events...</div>
+    <div id="eventsList"></div>
+    <div id="selectedEvent" class="hidden"></div>
+    <div style="margin-top:24px;text-align:center">
+      <button class="btn btn-sm btn-secondary" id="toggleCodeEntry" style="font-size:13px;color:#8892b0;background:none;border:1px solid #2a3a5e">Have an event code?</button>
+    </div>
+    <div id="codeEntrySection" class="hidden" style="margin-top:12px">
+      <form id="codeLookupForm" style="display:flex;gap:8px">
+        <input class="form-input" id="codeLookupInput" type="text" placeholder="Enter 6-char code" maxlength="6" autocapitalize="characters" style="flex:1">
+        <button class="btn btn-primary btn-sm" type="submit">Go</button>
+      </form>
+      <div id="codeLookupError"></div>
+    </div>`;
+}
+
+function bindLanding() {
+  // Toggle code entry
+  const toggleBtn = $('#toggleCodeEntry');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const section = $('#codeEntrySection');
+      if (section) section.classList.toggle('hidden');
+    });
+  }
+  // Code lookup form
+  const codeForm = $('#codeLookupForm');
+  if (codeForm) {
+    codeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = $('#codeLookupInput').value.trim().toUpperCase();
+      if (!code) return;
+      try {
+        const event = await apiGet('/events/' + code);
+        state.event = event;
+        showSelectedEvent(event);
+      } catch (err) {
+        const errEl = $('#codeLookupError');
+        if (errEl) errEl.innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+      }
+    });
+  }
+  // Load active events
+  loadActiveEvents();
+}
+
+async function loadActiveEvents() {
+  const loadingEl = $('#eventsLoading');
+  const listEl = $('#eventsList');
+  try {
+    const events = await apiGet('/discover?status=active');
+    // Try to get user location for distance sorting
+    let userLat = null, userLng = null;
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 60000 });
+      });
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+    } catch (locErr) {
+      // Location not available, that's fine
+    }
+    // Calculate distances and sort
+    const eventsWithDist = events.map(ev => {
+      let dist = null;
+      if (userLat != null && ev.location_lat != null && ev.location_lng != null) {
+        dist = haversineDistance(userLat, userLng, ev.location_lat, ev.location_lng);
+      }
+      return { ...ev, _distance: dist };
+    });
+    // Sort: events with distance first (ascending), then events without distance
+    eventsWithDist.sort((a, b) => {
+      if (a._distance != null && b._distance != null) return a._distance - b._distance;
+      if (a._distance != null) return -1;
+      if (b._distance != null) return 1;
+      return 0;
+    });
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (listEl) {
+      if (eventsWithDist.length === 0) {
+        listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No active events right now. Create one or enter a code.</div></div>';
+      } else {
+        listEl.innerHTML = eventsWithDist.map(ev => renderEventCard(ev)).join('');
+        // Bind click handlers
+        $$('#eventsList .event-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const evId = card.dataset.eventId;
+            const ev = eventsWithDist.find(e => e.id === evId);
+            if (ev) {
+              state.event = ev;
+              showSelectedEvent(ev);
+            }
+          });
+        });
+      }
+    }
+  } catch (err) {
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (listEl) listEl.innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+  }
+}
+
+function renderEventCard(ev) {
+  const dateStr = ev.starts_at ? new Date(ev.starts_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+  const timeStr = ev.starts_at ? new Date(ev.starts_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+  const distStr = ev._distance != null ? (ev._distance < 1 ? (ev._distance * 5280).toFixed(0) + ' ft' : ev._distance.toFixed(1) + ' mi') : '';
+  const vendorCount = ev.vendor_count != null ? ev.vendor_count : '?';
+  const itemCount = ev.item_count != null ? ev.item_count : '?';
+  return `
+    <div class="card event-card" data-event-id="${ev.id}" style="cursor:pointer;transition:border-color 0.2s;border:1px solid transparent">
+      <div class="flex flex-between flex-center">
+        <div style="font-size:16px;font-weight:700">${esc(ev.name || 'Unnamed Event')}</div>
+        ${distStr ? '<div style="font-size:13px;color:#2ec47a;font-weight:600;flex-shrink:0">' + distStr + '</div>' : ''}
+      </div>
+      <div style="margin-top:6px;font-size:13px;color:#8892b0">
+        ${dateStr ? '<span>' + dateStr + ' ' + timeStr + '</span>' : ''}
+        ${ev.location_name ? '<span style="margin-left:8px">📍 ' + esc(ev.location_name) + '</span>' : ''}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:12px;font-size:12px;color:#8892b0">
+        <span>👤 ${vendorCount} vendor${vendorCount !== 1 ? 's' : ''}</span>
+        <span>🍽️ ${itemCount} dish${itemCount !== 1 ? 'es' : ''}</span>
+      </div>
+    </div>`;
+}
+
+function showSelectedEvent(ev) {
+  const selEl = $('#selectedEvent');
+  if (!selEl) return;
+  selEl.classList.remove('hidden');
+  selEl.innerHTML = `
+    <div class="card" style="border:1px solid #2ec47a;background:#0f2520">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${esc(ev.name || 'Unnamed Event')}</div>
+      <div style="font-size:13px;color:#8892b0;margin-bottom:12px">${esc(ev.location_name || '')} ${ev.starts_at ? '&middot; ' + new Date(ev.starts_at).toLocaleDateString() : ''}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="goJoinFromEvent()">Join as Vendor</button>
+        <button class="btn btn-secondary" style="flex:1" onclick="goBrowseFromEvent()">Browse Menu</button>
+      </div>
+    </div>`;
+  // Hide the events list
+  const listEl = $('#eventsList');
+  if (listEl) listEl.classList.add('hidden');
+  const loadEl = $('#eventsLoading');
+  if (loadEl) loadEl.classList.add('hidden');
+}
+
+function goJoinFromEvent() {
+  if (state.event) {
+    localStorage.setItem('fm_event_id', state.event.id);
+    navigate('join');
+  }
+}
+window.goJoinFromEvent = goJoinFromEvent;
+
+function goBrowseFromEvent() {
+  if (state.event) {
+    navigate('browse', state.event.id);
+  }
+}
+window.goBrowseFromEvent = goBrowseFromEvent;
+
+/* ─── Screen: Join ─── */
+function renderJoin() {
+  const hasEvent = state.event && state.event.id;
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <h2 style="margin-bottom:20px">Join an Event</h2>
+    ${hasEvent ? '<div class="card mb-16" style="border:1px solid #2ec47a"><div style="font-size:15px;font-weight:600">' + esc(state.event.name) + '</div><div class="text-muted" style="font-size:13px;margin-top:2px">' + esc(state.event.location_name || '') + '</div></div>' : ''}
+    <form id="joinForm">
+      ${!hasEvent ? '<div class="form-group"><label class="form-label">Event Code</label><input class="form-input" id="joinCode" type="text" placeholder="Enter 6-character code" maxlength="6" autocapitalize="characters" required></div>' : ''}
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input class="form-input" id="joinName" type="text" placeholder="Your vendor / booth name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Booth Location (optional)</label>
+        <input class="form-input" id="joinBooth" type="text" placeholder="e.g. Booth #12, North Hall">
+      </div>
+      <div id="joinError"></div>
+      <button class="btn btn-primary btn-full mt-16" type="submit" id="joinBtn">Join Event</button>
+    </form>`;
+}
+
+function bindJoin() {
+  $('#joinForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#joinName').value.trim();
+    const booth = $('#joinBooth').value.trim();
+    if (!name) return;
+    const btn = $('#joinBtn');
+    btn.disabled = true; btn.textContent = 'Joining...';
+    $('#joinError').innerHTML = '';
+    try {
+      let event = state.event;
+      if (!event || !event.id) {
+        const codeEl = $('#joinCode');
+        const code = codeEl ? codeEl.value.trim().toUpperCase() : '';
+        if (!code) { btn.disabled = false; btn.textContent = 'Join Event'; return; }
+        event = await apiGet('/events/' + code);
+        state.event = event;
+      }
+      // Register vendor
+      const vendor = await apiPost('/vendors', {
+        event_id: event.id,
+        display_name: name,
+        booth_location: booth || null
+      });
+      state.vendor = vendor;
+      saveSession();
+      navigate('vendor');
+    } catch (err) {
+      $('#joinError').innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+      btn.disabled = false; btn.textContent = 'Join Event';
+    }
+  });
+}
+
+/* ─── Screen: Vendor Dashboard ─── */
+function renderVendorLoading() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading dashboard...</div>`;
+}
+
+async function loadVendor() {
+  const sess = loadSession();
+  if (!sess.session) { navigate('join'); return; }
+  try {
+    const vendor = await apiGet('/vendors/me?session=' + sess.session);
+    state.vendor = vendor;
+    state.items = vendor.items || [];
+    saveSession();
+    document.getElementById('app').innerHTML = renderVendor();
+  } catch (err) {
+    clearSession();
+    navigate('join');
+  }
+}
+
+function renderVendor() {
+  const v = state.vendor;
+  const items = state.items;
+  const listed = items.filter(i => i.status === 'listed').length;
+  const drafts = items.filter(i => i.status === 'draft').length;
+  const sold = items.filter(i => i.status === 'sold').length;
+
+  let stripeBanner = '';
+  if (state.stripeResult === 'success') {
+    stripeBanner = '<div class="stripe-banner stripe-success">Payment successful! You can now list items.</div>';
+    state.stripeResult = null;
+  } else if (state.stripeResult === 'cancelled') {
+    stripeBanner = '<div class="stripe-banner stripe-cancel">Payment was cancelled. You can try again.</div>';
+    state.stripeResult = null;
+  }
+
+  const statusBadge = v.status === 'paid' || v.status === 'active'
+    ? '<span class="badge badge-listed">Active</span>'
+    : '<span class="badge badge-draft">' + esc(v.status) + '</span>';
+
+  let payBtn = '';
+  if (v.status === 'preview') {
+    const fee = state.event && state.event.vendor_fee_cents ? (state.event.vendor_fee_cents / 100).toFixed(2) : '9.99';
+    payBtn = '<button class="btn btn-primary btn-full mt-12" id="payBtn">Go Live &mdash; $' + fee + '</button>';
+  }
+
+  const itemsHtml = items.length ? items.map(i => `
+    <div class="vendor-item" onclick="navigate('edit','${i.id}')">
+      <img class="vendor-item-img" src="${i.thumbnail_url || i.photo_url || ''}" alt="" loading="lazy">
+      <div class="vendor-item-info">
+        <div class="vendor-item-title">${esc(i.title || 'Untitled')}</div>
+        <div class="vendor-item-meta">${centsToDollars(i.price_cents) || 'No price'} &middot; <span class="badge badge-${i.status}">${i.status}</span></div>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">📸</div><div class="empty-state-text">No dishes yet. Snap a photo to add your first item!</div></div>';
+
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <button class="btn btn-sm btn-secondary" onclick="navigate('browse')">Browse</button>
+    </div>
+    ${stripeBanner}
+    ${v.logo_url ? '<div style="text-align:center;margin-bottom:12px"><img src="' + v.logo_url + '" alt="Logo" style="max-height:80px;border-radius:12px;display:inline-block"></div>' : ''}
+    <div class="card">
+      <div class="flex flex-between flex-center">
+        <div>
+          <div style="font-size:18px;font-weight:700">${esc(v.display_name)}</div>
+          <div class="text-muted" style="font-size:13px;margin-top:2px">${esc(v.booth_location || '')}</div>
+        </div>
+        ${statusBadge}
+      </div>
+    </div>
+    <input type="file" id="logoInput" accept="image/*" style="display:none">
+    <button class="btn btn-sm btn-secondary btn-full mb-8" id="uploadLogoBtn">${v.logo_url ? 'Change Logo' : 'Upload Logo'}</button>
+    <div class="vendor-stats">
+      <div class="stat-box"><div class="stat-num">${listed}</div><div class="stat-label">Listed</div></div>
+      <div class="stat-box"><div class="stat-num">${drafts}</div><div class="stat-label">Drafts</div></div>
+      <div class="stat-box"><div class="stat-num">${sold}</div><div class="stat-label">Sold</div></div>
+    </div>
+    ${payBtn}
+    <button class="btn btn-primary btn-full mt-12" onclick="navigate('camera')">📸 Add Dish</button>
+    <div class="mt-16" style="font-size:14px;font-weight:600;margin-bottom:8px">Your Dishes</div>
+    ${itemsHtml}
+    <button class="btn btn-secondary btn-full mt-16" onclick="doLogout()">Sign Out</button>`;
+}
+
+/* ─── Pay vendor fee ─── */
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'payBtn') {
+    const btn = e.target;
+    btn.disabled = true; btn.textContent = 'Processing...';
+    try {
+      const data = await apiPost('/checkout', {
+        vendor_id: state.vendor.id,
+        session_token: state.vendor.session_token
+      });
+      if (data.checkout_url) window.location.href = data.checkout_url;
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Go Live';
+      alert('Payment error: ' + err.message);
+    }
+  }
+});
+
+/* ─── Logo upload ─── */
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'uploadLogoBtn') {
+    const input = $('#logoInput');
+    if (input) input.click();
+  }
+});
+document.addEventListener('change', async (e) => {
+  if (e.target.id === 'logoInput' && e.target.files[0]) {
+    const sess = loadSession();
+    if (!sess.session || !sess.vendorId) return;
+    const btn = $('#uploadLogoBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+    const fd = new FormData();
+    fd.append('logo', e.target.files[0]);
+    try {
+      await apiPost('/vendors/' + sess.vendorId + '/logo?session=' + sess.session, fd, true);
+      navigate('vendor');
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Upload Logo'; }
+      alert('Logo upload failed: ' + err.message);
+    }
+  }
+});
+
+function doLogout() {
+  clearSession();
+  state.vendor = null;
+  state.event = null;
+  state.items = [];
+  navigate('landing');
+}
+window.doLogout = doLogout;
+
+/* ─── Screen: Camera ─── */
+function renderCamera() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+      <div class="header-logo">Add Dish</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="camera-container">
+      <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+      <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+    </div>
+    <div class="camera-controls" id="cameraLiveControls">
+      <button class="camera-btn camera-btn-secondary" id="flipBtn" title="Flip camera">🔄</button>
+      <button class="camera-btn" id="captureBtn" title="Take photo">📸</button>
+    </div>
+    <div class="camera-controls hidden" id="cameraReviewControls">
+      <button class="camera-btn camera-btn-secondary" id="retakeBtn" title="Retake">↩️</button>
+      <button class="camera-btn" id="usePhotoBtn" title="Use photo">✓</button>
+    </div>
+    <div class="mt-24">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+        <div class="upload-zone-icon">📁</div>
+        <div class="upload-zone-text">Or tap to upload a photo</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="upload-zone" id="multiUploadZone" style="border-color:#2a3a5e">
+        <input type="file" id="multiFileInput" accept="image/*" multiple style="display:none">
+        <div class="upload-zone-icon">📁📁📁</div>
+        <div class="upload-zone-text">Upload multiple photos at once</div>
+      </div>
+    </div>
+    <div id="multiPreviewGrid" class="hidden" style="margin-top:12px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">Selected Photos</div>
+      <div id="multiThumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+      <button class="btn btn-primary btn-full mt-12" id="uploadAllBtn">Upload All</button>
+    </div>
+    <div id="cameraError"></div>
+    <div class="loading hidden" id="cameraUploading"><div class="spinner"></div><span id="uploadProgressText">Analyzing dish with AI...</span></div>`;
+}
+
+let facingMode = 'environment';
+
+function bindCamera() {
+  startCamera();
+
+  $('#captureBtn').addEventListener('click', () => {
+    const video = $('#cameraVideo');
+    const canvas = $('#cameraCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    state.capturedPhoto = canvas.toDataURL('image/jpeg', 0.85);
+    video.style.display = 'none';
+    canvas.style.display = 'block';
+    $('#cameraLiveControls').classList.add('hidden');
+    $('#cameraReviewControls').classList.remove('hidden');
+    stopCamera();
+  });
+
+  $('#flipBtn').addEventListener('click', () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
+  });
+
+  $('#retakeBtn').addEventListener('click', () => {
+    state.capturedPhoto = null;
+    $('#cameraCanvas').style.display = 'none';
+    $('#cameraVideo').style.display = 'block';
+    $('#cameraLiveControls').classList.remove('hidden');
+    $('#cameraReviewControls').classList.add('hidden');
+    startCamera();
+  });
+
+  $('#usePhotoBtn').addEventListener('click', () => uploadPhoto(dataURLtoBlob(state.capturedPhoto)));
+
+  $('#uploadZone').addEventListener('click', () => $('#fileInput').click());
+  $('#fileInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) uploadPhoto(e.target.files[0]);
+  });
+
+  // Multi-file upload
+  $('#multiUploadZone').addEventListener('click', () => $('#multiFileInput').click());
+  $('#multiFileInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    showMultiPreview(files);
+  });
+}
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1024 }, height: { ideal: 1024 } }, audio: false });
+    state.cameraStream = stream;
+    const video = $('#cameraVideo');
+    if (video) { video.srcObject = stream; }
+  } catch (err) {
+    const el = $('#cameraError');
+    if (el) el.innerHTML = '<div class="error-box">Camera access denied. Use the upload option instead.</div>';
+  }
+}
+
+function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream = null;
+  }
+}
+
+function dataURLtoBlob(dataURL) {
+  const parts = dataURL.split(',');
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const b = atob(parts[1]);
+  const arr = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) arr[i] = b.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+async function uploadPhoto(blob) {
+  const sess = loadSession();
+  if (!sess.session || !sess.vendorId || !sess.eventId) { navigate('join'); return; }
+
+  const uploading = $('#cameraUploading');
+  const errEl = $('#cameraError');
+  if (uploading) uploading.classList.remove('hidden');
+  if (errEl) errEl.innerHTML = '';
+
+  const fd = new FormData();
+  fd.append('photo', blob, 'dish.jpg');
+  fd.append('event_id', sess.eventId);
+  fd.append('vendor_id', sess.vendorId);
+  fd.append('session_token', sess.session);
+  fd.append('type', 'food');
+
+  try {
+    const item = await apiPost('/items', fd, true);
+    state.currentItem = item;
+    navigate('edit', item.id);
+  } catch (err) {
+    if (uploading) uploading.classList.add('hidden');
+    if (errEl) errEl.innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+  }
+}
+
+/* ─── Multi-upload ─── */
+let pendingMultiFiles = [];
+
+function showMultiPreview(files) {
+  pendingMultiFiles = files;
+  const grid = $('#multiPreviewGrid');
+  const thumbs = $('#multiThumbs');
+  if (!grid || !thumbs) return;
+  grid.classList.remove('hidden');
+  thumbs.innerHTML = '';
+  files.forEach((file, idx) => {
+    const url = URL.createObjectURL(file);
+    thumbs.innerHTML += '<div style="position:relative"><img src="' + url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#0f1527"><div style="position:absolute;bottom:4px;right:4px;background:#0f1527;color:#8892b0;font-size:11px;padding:2px 6px;border-radius:4px">' + (idx + 1) + '</div></div>';
+  });
+  $('#uploadAllBtn').textContent = 'Upload All (' + files.length + ')';
+  const uploadAllBtn = $('#uploadAllBtn');
+  // Remove old listeners by cloning
+  const newBtn = uploadAllBtn.cloneNode(true);
+  uploadAllBtn.parentNode.replaceChild(newBtn, uploadAllBtn);
+  newBtn.addEventListener('click', () => uploadMultiPhotos());
+}
+
+async function uploadMultiPhotos() {
+  const sess = loadSession();
+  if (!sess.session || !sess.vendorId || !sess.eventId) { navigate('join'); return; }
+
+  const uploading = $('#cameraUploading');
+  const errEl = $('#cameraError');
+  const progressText = $('#uploadProgressText');
+  const uploadBtn = $('#uploadAllBtn');
+  if (uploading) uploading.classList.remove('hidden');
+  if (errEl) errEl.innerHTML = '';
+  if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading...'; }
+
+  const total = pendingMultiFiles.length;
+  let completed = 0;
+  let errors = [];
+
+  for (let i = 0; i < total; i++) {
+    if (progressText) progressText.textContent = 'Analyzing ' + (i + 1) + ' of ' + total + ' dishes...';
+    const fd = new FormData();
+    fd.append('photo', pendingMultiFiles[i], 'dish_' + i + '.jpg');
+    fd.append('event_id', sess.eventId);
+    fd.append('vendor_id', sess.vendorId);
+    fd.append('session_token', sess.session);
+    fd.append('type', 'food');
+    try {
+      await apiPost('/items', fd, true);
+      completed++;
+    } catch (err) {
+      errors.push('Photo ' + (i + 1) + ': ' + err.message);
+    }
+  }
+
+  pendingMultiFiles = [];
+  if (uploading) uploading.classList.add('hidden');
+
+  if (errors.length > 0 && errEl) {
+    errEl.innerHTML = '<div class="error-box">' + esc(errors.join('; ')) + '</div>';
+  }
+  if (completed > 0) {
+    navigate('vendor');
+  }
+}
+
+/* ─── Screen: Edit ─── */
+function renderEditLoading() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+      <div class="header-logo">Edit Dish</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading dish...</div>`;
+}
+
+async function loadEdit() {
+  const id = state.screenParam;
+  if (!id) { navigate('vendor'); return; }
+  try {
+    let item = null;
+    // Check if we already have the item from creation
+    if (state.currentItem && state.currentItem.id === id) {
+      item = state.currentItem;
+      state.currentItem = null;
+    } else {
+      const sess = loadSession();
+      const vendor = await apiGet('/vendors/me?session=' + sess.session);
+      item = (vendor.items || []).find(i => i.id === id);
+    }
+    if (!item) throw new Error('Item not found');
+    document.getElementById('app').innerHTML = renderEdit(item);
+    bindEdit(item);
+  } catch (err) {
+    document.getElementById('app').innerHTML = `
+      <div class="header">
+        <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+        <div class="header-logo">Edit Dish</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="error-box">${esc(err.message)}</div>`;
+  }
+}
+
+function renderEdit(item) {
+  const ai = item.ai_description || {};
+  const dietaryInfo = ai.dietary_info || [];
+  const spiceLevel = ai.spice_level || 'none';
+  const categories = ['Appetizer', 'Entree', 'Dessert', 'Drink', 'Side', 'Snack'];
+  const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
+  const spiceLevels = ['None', 'Mild', 'Medium', 'Hot'];
+
+  const catOptions = categories.map(c => `<option value="${c}" ${(item.category || ai.category) === c ? 'selected' : ''}>${c}</option>`).join('');
+
+  const dietaryCheckboxes = dietaryOptions.map(d => {
+    const checked = dietaryInfo.includes(d);
+    return `<label class="checkbox-tag ${checked ? 'active' : ''}" data-dietary="${d}">
+      <input type="checkbox" name="dietary" value="${d}" ${checked ? 'checked' : ''}>
+      <span class="icon">${dietaryIcon(d)}</span> ${dietaryLabel(d)}
+    </label>`;
+  }).join('');
+
+  const normalizedSpice = !spiceLevel || spiceLevel === 'none' ? 'None' : spiceLevel;
+  const spiceOptions = spiceLevels.map(s => `<span class="spice-option ${normalizedSpice === s ? 'active' : ''}" data-spice="${s}">${s === 'None' ? 'None' : s === 'Mild' ? '🌶️ Mild' : s === 'Medium' ? '🌶️🌶️ Medium' : '🌶️🌶️🌶️ Hot'}</span>`).join('');
+
+  const priceVal = item.price_cents ? (item.price_cents / 100).toFixed(2) : (ai.suggested_price_range ? '' : '');
+
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+      <div class="header-logo">Edit Dish</div>
+      <div style="width:32px"></div>
+    </div>
+    <img class="preview-img" src="${item.photo_url || ''}" alt="Dish photo">
+    <form id="editForm">
+      <div class="form-group">
+        <label class="form-label">Dish Name</label>
+        <input class="form-input" id="editTitle" type="text" value="${esc(item.title || ai.title || '')}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input" id="editDesc">${esc(item.description || ai.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-input" id="editCategory">
+          <option value="">Select category</option>
+          ${catOptions}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dietary Info</label>
+        <div class="checkbox-group" id="dietaryGroup">
+          ${dietaryCheckboxes}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spice Level</label>
+        <div class="spice-selector" id="spiceGroup">
+          ${spiceOptions}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price ($)</label>
+        <input class="form-input" id="editPrice" type="number" step="0.01" min="0" placeholder="${ai.suggested_price_range || '0.00'}" value="${priceVal}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (visible to buyers)</label>
+        <textarea class="form-input" id="editNotes" placeholder="Preparation time, allergen warnings, etc.">${esc(item.vendor_notes || '')}</textarea>
+      </div>
+      <div id="editError"></div>
+      <div id="editSuccess"></div>
+      <div class="flex gap-8 mt-16">
+        <button class="btn btn-primary" type="submit" id="saveBtn" style="flex:1">Save</button>
+        ${item.status === 'draft' ? '<button class="btn btn-primary" type="button" id="listBtn" style="flex:1;background:#27a968">List Dish</button>' : ''}
+        ${item.status === 'listed' ? '<button class="btn btn-danger btn-sm" type="button" id="unlistBtn">Unlist</button>' : ''}
+      </div>
+    </form>`;
+}
+
+function bindEdit(item) {
+  // Dietary checkbox toggles
+  $$('#dietaryGroup .checkbox-tag').forEach(label => {
+    label.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('active', cb.checked);
+    });
+  });
+
+  // Spice level selector
+  $$('#spiceGroup .spice-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      $$('#spiceGroup .spice-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+
+  // Save
+  $('#editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveItem(item.id, false);
+  });
+
+  // List
+  const listBtn = $('#listBtn');
+  if (listBtn) {
+    listBtn.addEventListener('click', async () => {
+      await saveItem(item.id, true);
+    });
+  }
+
+  // Unlist
+  const unlistBtn = $('#unlistBtn');
+  if (unlistBtn) {
+    unlistBtn.addEventListener('click', async () => {
+      const sess = loadSession();
+      try {
+        await apiPut('/items/' + item.id, { status: 'draft', session_token: sess.session });
+        navigate('edit', item.id);
+      } catch (err) {
+        $('#editError').innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+      }
+    });
+  }
+}
+
+async function saveItem(id, andList) {
+  const sess = loadSession();
+  const title = $('#editTitle').value.trim();
+  const description = $('#editDesc').value.trim();
+  const category = $('#editCategory').value;
+  const price = parseFloat($('#editPrice').value);
+  const vendorNotes = $('#editNotes').value.trim();
+  const btn = andList ? $('#listBtn') : $('#saveBtn');
+
+  // Collect dietary
+  const dietary = [];
+  $$('#dietaryGroup input:checked').forEach(cb => dietary.push(cb.value));
+
+  // Collect spice
+  const activeSpice = $('#spiceGroup .spice-option.active');
+  const spice = activeSpice ? activeSpice.dataset.spice : 'None';
+
+  btn.disabled = true; btn.textContent = andList ? 'Listing...' : 'Saving...';
+  $('#editError').innerHTML = '';
+  $('#editSuccess').innerHTML = '';
+
+  try {
+    const body = {
+      title, description, category,
+      price_cents: isNaN(price) ? null : Math.round(price * 100),
+      vendor_notes: vendorNotes || null,
+      session_token: sess.session
+    };
+    if (andList) body.status = 'listed';
+
+    await apiPut('/items/' + id, body);
+
+    // We store dietary and spice in ai_description on the client side display
+    // The backend stores these in ai_description already from AI analysis
+    // For manual overrides we'd need a separate endpoint - for now, display saved message
+
+    $('#editSuccess').innerHTML = '<div class="success-box">' + (andList ? 'Dish listed successfully!' : 'Dish saved!') + '</div>';
+    btn.disabled = false; btn.textContent = andList ? 'List Dish' : 'Save';
+    if (andList) { setTimeout(() => navigate('vendor'), 1000); }
+  } catch (err) {
+    $('#editError').innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+    btn.disabled = false; btn.textContent = andList ? 'List Dish' : 'Save';
+  }
+}
+
+/* ─── Screen: Preview (Event Preview) ─── */
+function renderPreviewLoading() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading preview...</div>`;
+}
+
+async function loadPreview() {
+  const sess = loadSession();
+  if (!sess.eventId) { navigate('vendor'); return; }
+  try {
+    const [stats, items] = await Promise.all([
+      apiGet('/events/' + sess.eventId + '/stats'),
+      apiGet('/items?event_id=' + sess.eventId + '&status=listed')
+    ]);
+    document.getElementById('app').innerHTML = renderPreview(stats, items);
+  } catch (err) {
+    document.getElementById('app').innerHTML = `
+      <div class="header">
+        <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+        <div class="header-logo">FlashMenu</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="error-box">${esc(err.message)}</div>`;
+  }
+}
+
+function renderPreview(stats, items) {
+  const grid = items.length ? '<div class="items-grid">' + items.map(renderItemCard).join('') + '</div>' : '<div class="empty-state"><div class="empty-state-icon">🍽️</div><div class="empty-state-text">No dishes listed yet.</div></div>';
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('vendor')">&larr;</button>
+      <div class="header-logo">Menu Preview</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="vendor-stats">
+      <div class="stat-box"><div class="stat-num">${stats.vendor_count}</div><div class="stat-label">Vendors</div></div>
+      <div class="stat-box"><div class="stat-num">${stats.listed_count}</div><div class="stat-label">Dishes</div></div>
+      <div class="stat-box"><div class="stat-num">${stats.item_count}</div><div class="stat-label">Total</div></div>
+    </div>
+    ${grid}`;
+}
+
+/* ─── Screen: Browse ─── */
+function renderBrowseLoading() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate(loadSession().session ? 'vendor' : 'landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading menu...</div>`;
+}
+
+async function loadBrowse() {
+  const sess = loadSession();
+  const eventId = state.screenParam || sess.eventId;
+  if (!eventId) {
+    document.getElementById('app').innerHTML = renderBrowseNoEvent();
+    return;
+  }
+  try {
+    let url = '/items?event_id=' + eventId + '&status=listed';
+    if (state.filters.q) url += '&q=' + encodeURIComponent(state.filters.q);
+    // Category and dietary are now filtered client-side via the filter modal
+    if (state.filters.sort === 'price_asc') url += '&sort=price_asc';
+    else if (state.filters.sort === 'price_desc') url += '&sort=price_desc';
+    else url += '&sort=newest';
+
+    const items = await apiGet(url);
+    state.browseItems = items;
+    document.getElementById('app').innerHTML = renderBrowse(items, eventId);
+    bindBrowse(eventId);
+  } catch (err) {
+    document.getElementById('app').innerHTML = `
+      <div class="header">
+        <button class="header-back" onclick="navigate(loadSession().session ? 'vendor' : 'landing')">&larr;</button>
+        <div class="header-logo">FlashMenu</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="error-box">${esc(err.message)}</div>`;
+  }
+}
+
+function renderBrowseNoEvent() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:12px">Browse a Menu</h3>
+      <p class="text-muted" style="font-size:14px;margin-bottom:16px">Enter an event code to browse its menu.</p>
+      <form id="browseJoinForm">
+        <div class="form-group">
+          <input class="form-input" id="browseCode" type="text" placeholder="Event code (e.g. ABC123)" maxlength="6" autocapitalize="characters">
+        </div>
+        <button class="btn btn-primary btn-full" type="submit">Browse</button>
+      </form>
+    </div>`;
+}
+
+function renderBrowse(items, eventId) {
+  const categories = ['Appetizer', 'Entree', 'Dessert', 'Drink', 'Side', 'Snack'];
+  const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
+  const sortOptions = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'price_asc', label: 'Price Low\u2192High' },
+    { value: 'price_desc', label: 'Price High\u2192Low' },
+    { value: 'popular', label: 'Popular' }
+  ];
+
+  // Apply client-side dietary filter
+  let filtered = items;
+  if (state.filters.category) {
+    filtered = filtered.filter(item => item.category === state.filters.category);
+  }
+  if (state.filters.dietary.length > 0) {
+    filtered = filtered.filter(item => {
+      const tags = getDietaryTags(item);
+      return state.filters.dietary.every(d => tags.includes(d));
+    });
+  }
+  // Client-side sort for popular
+  if (state.filters.sort === 'popular') {
+    filtered = filtered.slice().sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+  }
+
+  const activeFilterCount = (state.filters.category ? 1 : 0) + state.filters.dietary.length;
+  const filterBtnLabel = activeFilterCount > 0 ? 'Filters (' + activeFilterCount + ')' : 'Filters';
+
+  const sortChips = sortOptions.map(s => '<span class="filter-chip ' + (state.filters.sort === s.value ? 'active' : '') + '" data-sort="' + s.value + '">' + s.label + '</span>').join('');
+
+  const grid = filtered.length ? '<div class="items-grid">' + filtered.map(renderItemCard).join('') + '</div>' : '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No dishes found matching your filters.</div></div>';
+
+  // Build filter modal categories checkboxes
+  const catCheckboxes = categories.map(c => {
+    const checked = state.filters.category === c;
+    return '<label class="checkbox-tag ' + (checked ? 'active' : '') + '" data-filter-cat="' + c + '"><input type="checkbox" name="filterCat" value="' + c + '" ' + (checked ? 'checked' : '') + '> ' + c + '</label>';
+  }).join('');
+
+  const dietaryCheckboxes = dietaryOptions.map(d => {
+    const checked = state.filters.dietary.includes(d);
+    return '<label class="checkbox-tag ' + (checked ? 'active' : '') + '" data-filter-diet="' + d + '"><input type="checkbox" name="filterDiet" value="' + d + '" ' + (checked ? 'checked' : '') + '> ' + dietaryIcon(d) + ' ' + dietaryLabel(d) + '</label>';
+  }).join('');
+
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate(loadSession().session ? 'vendor' : 'landing')">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search dishes..." value="${esc(state.filters.q)}" id="browseSearch">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <button class="btn btn-sm btn-secondary" id="openFilterBtn" style="flex-shrink:0">${filterBtnLabel}</button>
+      <div class="filter-bar" id="sortFilters" style="flex:1">${sortChips}</div>
+    </div>
+    <div class="mt-8 mb-8 text-muted" style="font-size:13px">${filtered.length} dish${filtered.length !== 1 ? 'es' : ''}</div>
+    ${grid}
+    <div id="filterModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-end;justify-content:center">
+      <div style="background:#16213e;border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:24px;max-height:80vh;overflow-y:auto">
+        <div class="flex flex-between flex-center" style="margin-bottom:16px">
+          <div style="font-size:18px;font-weight:700">Filters</div>
+          <button class="btn btn-sm btn-secondary" id="closeFilterBtn">&times;</button>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="form-label" style="margin-bottom:8px">Category</div>
+          <div class="checkbox-group" id="filterCatGroup">
+            ${catCheckboxes}
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="form-label" style="margin-bottom:8px">Dietary</div>
+          <div class="checkbox-group" id="filterDietGroup">
+            ${dietaryCheckboxes}
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="applyFilterBtn">Apply Filters</button>
+        <button class="btn btn-secondary btn-full mt-8" id="clearFilterBtn">Clear All</button>
+      </div>
+    </div>`;
+}
+
+function renderItemCard(item) {
+  const tags = getDietaryTags(item);
+  const spice = getSpiceLevel(item);
+  return `
+    <div class="item-card" onclick="navigate('item','${item.id}')">
+      <img class="item-card-img" src="${item.thumbnail_url || item.photo_url || ''}" alt="" loading="lazy">
+      <div class="item-card-body">
+        <div class="item-card-title">${esc(item.title || 'Untitled')}</div>
+        <div class="item-card-price">${centsToDollars(item.price_cents) || 'Price TBD'}</div>
+        ${item.vendors ? '<div class="item-card-vendor">' + esc(item.vendors.display_name || '') + '</div>' : ''}
+        ${dietaryIconsHtml(tags)}
+        ${spice && spice !== 'none' && spice !== 'None' ? '<div style="margin-top:3px">' + spiceHtml(spice) + '</div>' : ''}
+      </div>
+    </div>`;
+}
+
+function bindBrowse(eventId) {
+  // Search
+  const searchInput = $('#browseSearch');
+  if (searchInput) {
+    let searchTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.filters.q = searchInput.value.trim();
+        loadBrowse();
+      }, 400);
+    });
+  }
+
+  // Open filter modal
+  const openFilterBtn = $('#openFilterBtn');
+  if (openFilterBtn) {
+    openFilterBtn.addEventListener('click', () => {
+      const modal = $('#filterModal');
+      if (modal) { modal.classList.remove('hidden'); modal.style.display = 'flex'; }
+    });
+  }
+
+  // Close filter modal
+  const closeFilterBtn = $('#closeFilterBtn');
+  if (closeFilterBtn) {
+    closeFilterBtn.addEventListener('click', () => {
+      const modal = $('#filterModal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+    });
+  }
+
+  // Click backdrop to close
+  const filterModal = $('#filterModal');
+  if (filterModal) {
+    filterModal.addEventListener('click', (e) => {
+      if (e.target === filterModal) { filterModal.classList.add('hidden'); filterModal.style.display = 'none'; }
+    });
+  }
+
+  // Toggle checkbox-tag styling in filter modal
+  $$('#filterCatGroup .checkbox-tag').forEach(label => {
+    label.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('active', cb.checked);
+    });
+  });
+  $$('#filterDietGroup .checkbox-tag').forEach(label => {
+    label.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('active', cb.checked);
+    });
+  });
+
+  // Apply filters
+  const applyFilterBtn = $('#applyFilterBtn');
+  if (applyFilterBtn) {
+    applyFilterBtn.addEventListener('click', () => {
+      // Collect selected categories (use last checked as single-select, or first)
+      const catChecked = $$('#filterCatGroup input:checked');
+      state.filters.category = catChecked.length > 0 ? catChecked[catChecked.length - 1].value : '';
+      // Collect dietary
+      state.filters.dietary = [];
+      $$('#filterDietGroup input:checked').forEach(cb => state.filters.dietary.push(cb.value));
+      // Close modal and re-render
+      const modal = $('#filterModal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      const app = document.getElementById('app');
+      app.innerHTML = renderBrowse(state.browseItems, eventId);
+      bindBrowse(eventId);
+    });
+  }
+
+  // Clear all filters
+  const clearFilterBtn = $('#clearFilterBtn');
+  if (clearFilterBtn) {
+    clearFilterBtn.addEventListener('click', () => {
+      state.filters.category = '';
+      state.filters.dietary = [];
+      const modal = $('#filterModal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      const app = document.getElementById('app');
+      app.innerHTML = renderBrowse(state.browseItems, eventId);
+      bindBrowse(eventId);
+    });
+  }
+
+  // Sort
+  $$('#sortFilters .filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      state.filters.sort = chip.dataset.sort;
+      if (chip.dataset.sort === 'popular') {
+        // Client-side sort only, re-render without refetch
+        const app = document.getElementById('app');
+        app.innerHTML = renderBrowse(state.browseItems, eventId);
+        bindBrowse(eventId);
+      } else {
+        loadBrowse();
+      }
+    });
+  });
+
+  // Browse join form (no event)
+  const browseJoinForm = $('#browseJoinForm');
+  if (browseJoinForm) {
+    browseJoinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = $('#browseCode').value.trim().toUpperCase();
+      if (!code) return;
+      try {
+        const event = await apiGet('/events/' + code);
+        navigate('browse', event.id);
+      } catch (err) {
+        alert('Event not found: ' + err.message);
+      }
+    });
+  }
+}
+
+/* ─── Screen: Item Detail ─── */
+function renderItemLoading() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="window.history.back()">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading dish...</div>`;
+}
+
+async function loadItem() {
+  const id = state.screenParam;
+  if (!id) { navigate('browse'); return; }
+  try {
+    // Try to find item in browseItems first
+    let item = state.browseItems.find(i => i.id === id);
+    if (!item) {
+      // Try vendor items
+      item = state.items.find(i => i.id === id);
+    }
+    if (!item) {
+      // Fetch from browse endpoint
+      const sess = loadSession();
+      const eventId = sess.eventId;
+      if (eventId) {
+        const items = await apiGet('/items?event_id=' + eventId);
+        item = items.find(i => i.id === id);
+      }
+    }
+    if (!item) throw new Error('Dish not found');
+    state.currentItem = item;
+    document.getElementById('app').innerHTML = renderItemDetail(item);
+    // Increment view count (fire and forget)
+    try { apiPut('/items/' + id + '/view', {}); } catch (e) { /* ignore */ }
+  } catch (err) {
+    document.getElementById('app').innerHTML = `
+      <div class="header">
+        <button class="header-back" onclick="window.history.back()">&larr;</button>
+        <div class="header-logo">FlashMenu</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="error-box">${esc(err.message)}</div>`;
+  }
+}
+
+function renderItemDetail(item) {
+  const ai = item.ai_description || {};
+  const tags = getDietaryTags(item);
+  const spice = getSpiceLevel(item);
+  const vendor = item.vendors || {};
+
+  const isOwner = state.vendor && item.vendor_id === state.vendor.id;
+
+  return `
+    <div class="header">
+      <button class="header-back" onclick="window.history.back()">&larr;</button>
+      <div class="header-logo">FlashMenu</div>
+      <div style="width:32px"></div>
+    </div>
+    <img class="detail-img" src="${item.photo_url || ''}" alt="${esc(item.title || 'Dish')}" loading="lazy">
+    <div class="detail-title">${esc(item.title || 'Untitled')}</div>
+    <div class="detail-price">${centsToDollars(item.price_cents) || 'Price TBD'}</div>
+    ${tags.length ? '<div class="detail-section">' + dietaryBadgesHtml(tags) + '</div>' : ''}
+    ${spice && spice !== 'none' && spice !== 'None' ? '<div class="detail-section">' + spiceHtml(spice) + '</div>' : ''}
+    <div class="detail-section">
+      <div class="detail-section-title">Description</div>
+      <div class="detail-desc">${esc(item.description || ai.description || 'No description available.')}</div>
+    </div>
+    ${item.category ? '<div class="detail-section"><div class="detail-section-title">Category</div><div class="detail-desc">' + esc(item.category) + '</div></div>' : ''}
+    ${ai.estimated_calories ? '<div class="detail-section"><div class="detail-section-title">Estimated Calories</div><div class="detail-desc">' + esc(ai.estimated_calories) + '</div></div>' : ''}
+    ${item.vendor_notes ? '<div class="detail-section"><div class="detail-section-title">Notes</div><div class="detail-desc">' + esc(item.vendor_notes) + '</div></div>' : ''}
+    ${vendor.display_name ? `
+      <div class="detail-section">
+        <div class="detail-section-title">Vendor</div>
+        ${vendor.logo_url ? '<img src="' + vendor.logo_url + '" alt="' + esc(vendor.display_name) + '" style="width:100%;max-height:100px;object-fit:cover;border-radius:10px;margin-bottom:8px">' : ''}
+        <div class="detail-vendor">
+          <div class="detail-vendor-avatar">${esc(vendor.display_name.charAt(0))}</div>
+          <div>
+            <div class="detail-vendor-name">${esc(vendor.display_name)}</div>
+            ${vendor.booth_location ? '<div class="detail-vendor-loc">📍 ' + esc(vendor.booth_location) + '</div>' : ''}
+          </div>
+        </div>
+      </div>` : ''}
+    ${isOwner ? '<button class="btn btn-primary btn-full mt-16" onclick="navigate(\'edit\',\'' + item.id + '\')">Edit Dish</button>' : ''}
+    <div style="height:32px"></div>`;
+}
+
+/* ─── Screen: Create Event ─── */
+function renderCreate() {
+  return `
+    <div class="header">
+      <button class="header-back" onclick="navigate('landing')">&larr;</button>
+      <div class="header-logo">Create Event</div>
+      <div style="width:32px"></div>
+    </div>
+    <form id="createForm">
+      <div class="form-group">
+        <label class="form-label">Event Name</label>
+        <input class="form-input" id="createName" type="text" placeholder="e.g. Street Food Festival 2026" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optional)</label>
+        <textarea class="form-input" id="createDesc" placeholder="Tell vendors about your event"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location Name (optional)</label>
+        <input class="form-input" id="createLocation" type="text" placeholder="e.g. Central Park">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Start Date &amp; Time</label>
+        <input class="form-input" id="createStart" type="datetime-local" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date &amp; Time</label>
+        <input class="form-input" id="createEnd" type="datetime-local" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vendor Fee ($)</label>
+        <input class="form-input" id="createFee" type="number" step="0.01" min="0" value="9.99">
+      </div>
+      <div id="createError"></div>
+      <button class="btn btn-primary btn-full mt-16" type="submit" id="createBtn">Create Event</button>
+    </form>`;
+}
+
+function bindCreate() {
+  $('#createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#createName').value.trim();
+    const description = $('#createDesc').value.trim();
+    const location = $('#createLocation').value.trim();
+    const startsAt = $('#createStart').value;
+    const endsAt = $('#createEnd').value;
+    const fee = parseFloat($('#createFee').value);
+
+    if (!name || !startsAt || !endsAt) return;
+
+    const btn = $('#createBtn');
+    btn.disabled = true; btn.textContent = 'Creating...';
+    $('#createError').innerHTML = '';
+
+    try {
+      const event = await apiPost('/events', {
+        name,
+        type: 'menu',
+        description: description || null,
+        location_name: location || null,
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: new Date(endsAt).toISOString(),
+        vendor_fee_cents: isNaN(fee) ? 999 : Math.round(fee * 100)
+      });
+
+      // Show success with join code
+      document.getElementById('app').innerHTML = `
+        <div class="header">
+          <button class="header-back" onclick="navigate('landing')">&larr;</button>
+          <div class="header-logo">FlashMenu</div>
+          <div style="width:32px"></div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:48px;margin-bottom:12px">🎉</div>
+          <h2 style="margin-bottom:8px">Event Created!</h2>
+          <p class="text-muted" style="margin-bottom:20px">${esc(event.name)}</p>
+          <div class="form-label">Share this join code with vendors</div>
+          <div style="font-size:36px;font-weight:800;color:#2ec47a;letter-spacing:4px;margin:12px 0">${esc(event.join_code)}</div>
+          <button class="btn btn-secondary btn-full mt-16" onclick="copyCode('${esc(event.join_code)}')">Copy Code</button>
+          <button class="btn btn-primary btn-full mt-8" onclick="navigate('landing')">Done</button>
+        </div>`;
+    } catch (err) {
+      $('#createError').innerHTML = '<div class="error-box">' + esc(err.message) + '</div>';
+      btn.disabled = false; btn.textContent = 'Create Event';
+    }
+  });
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    alert('Code copied: ' + code);
+  }).catch(() => {
+    prompt('Copy this code:', code);
+  });
+}
+window.copyCode = copyCode;
+
+/* ─── Expose navigate globally for onclick handlers ─── */
+window.navigate = navigate;
+window.loadSession = loadSession;
+
+/* ─── Init ─── */
+function init() {
+  // Check Stripe return params
+  checkStripeReturn();
+
+  // Try to resume session
+  const sess = loadSession();
+  if (sess.session) {
+    const { screen, param } = parseHash();
+    if (screen === 'landing' || screen === '') {
+      state.screen = 'vendor';
+    } else {
+      state.screen = screen;
+      state.screenParam = param;
+    }
+  } else {
+    const { screen, param } = parseHash();
+    state.screen = screen;
+    state.screenParam = param;
+  }
+  render();
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/menu/sw.js').catch(() => {});
+}
+
+init();
+})();
+</script>
+</body>
+</html>
