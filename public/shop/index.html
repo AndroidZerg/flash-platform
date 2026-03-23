@@ -1011,7 +1011,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 .detail-panel-close:hover { color: var(--text); }
 
-/* --- Save/Wishlist Button --- */
+/* --- Save Button --- */
 .save-btn {
   background: none; border: 1px solid rgba(255,255,255,0.15);
   border-radius: var(--radius-btn); padding: 10px 16px;
@@ -1127,7 +1127,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     filterFoil: '',
     selectedCardTypes: [],
     filterCardTypes: [],
-    wishlist: [],
     _tcgDefaultsApplied: false,
     browseOffset: 0,
     browseHasMore: true,
@@ -1193,34 +1192,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       api('PUT', '/api/items/' + item.id + '/save').catch(() => {});
     }
     saveSavedItems();
-  }
-
-  // ---------- WISHLIST (card-level, separate from saved listings) ----------
-  function wishlistKey() { return 'wishlist_' + (getEventId() || 'global'); }
-  function loadWishlist() { state.wishlist = load(wishlistKey()) || []; }
-  function saveWishlist() { save(wishlistKey(), state.wishlist); }
-  function isCardWishlisted(cardId) {
-    if (!cardId) return false;
-    const base = cardId.replace(/-graded$/, '');
-    return state.wishlist.some(w => w.card_id.replace(/-graded$/, '') === base);
-  }
-  function toggleWishlistCard(item) {
-    if (!item.tcg_card_id) return;
-    const base = item.tcg_card_id.replace(/-graded$/, '');
-    const idx = state.wishlist.findIndex(w => w.card_id.replace(/-graded$/, '') === base);
-    if (idx >= 0) {
-      state.wishlist.splice(idx, 1);
-    } else {
-      state.wishlist.push({
-        card_id: base,
-        title: item.title || 'Unknown Card',
-        tcg_game: item.tcg_game || '',
-        tcg_set_name: item.tcg_set_name || '',
-        tcg_image_url: item.tcg_image_url || item.photo_url || '',
-        added_at: new Date().toISOString(),
-      });
-    }
-    saveWishlist();
   }
 
   // ---------- API CACHE ----------
@@ -1681,9 +1652,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.browseOffset = 0;
     state.browseHasMore = true;
 
-    // Reload saved items + wishlist scoped to this event
+    // Reload saved items scoped to this event
     loadSavedItems();
-    loadWishlist();
 
     const eventName = state.event ? state.event.name : 'Marketplace';
     const savedCount = state.savedItems.length;
@@ -1697,9 +1667,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         <button class="tab-btn ${tab === 'shop' ? 'active' : ''}" data-tab="shop">&#128717; Shop</button>
         <button class="tab-btn ${tab === 'menu' ? 'active' : ''}" data-tab="menu">&#127828; Menu</button>
         <button class="tab-btn saved-tab-btn ${tab === 'saved' ? 'active' : ''}" data-tab="saved">&#10084; Saved<span class="saved-badge" style="${savedCount ? '' : 'display:none;'}">${savedCount}</span></button>
-        <button class="tab-btn ${tab === 'wishlist' ? 'active' : ''}" data-tab="wishlist">&#9733; Wants</button>
       </div>
-      ${tab !== 'saved' && tab !== 'wishlist' ? `
+      ${tab !== 'saved' ? `
         <div id="tcg-tabs-area"></div>
         <div id="vendor-filter-area"></div>
         <div class="search-bar">
@@ -1721,10 +1690,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     if (tab === 'saved') {
       renderSavedItems(root, eventId);
-      return;
-    }
-    if (tab === 'wishlist') {
-      renderWishlistTab(root, eventId);
       return;
     }
 
@@ -1852,65 +1817,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             || { id, title: 'Item', price_cents: 0 };
         });
         openCompareView(items);
-      });
-    });
-  }
-
-  // ---------- WISHLIST TAB ----------
-  function renderWishlistTab(root, eventId) {
-    const gridDiv = $('#browse-grid', root);
-    if (!state.wishlist.length) {
-      gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9733;</div><p>No wishlist cards yet</p><p class="small muted">Tap the star on any card to add it to your wishlist</p></div>';
-      return;
-    }
-    let html = '<p class="muted small" style="margin-bottom:12px;">Cards you\'re looking for. We\'ll highlight matches in the shop.</p>';
-    state.wishlist.forEach(w => {
-      html += `
-        <div class="vendor-item" data-wl-card="${esc(w.card_id)}" style="position:relative;">
-          <img src="${w.tcg_image_url ? esc(w.tcg_image_url) : placeholderImg()}" alt="" style="width:56px;height:56px;object-fit:contain;border-radius:4px;" onerror="this.src='${placeholderImg()}'">
-          <div class="vendor-item-info">
-            <div class="item-title">${esc(w.title)}</div>
-            <div class="muted small">${esc(w.tcg_set_name || '')} ${w.tcg_game ? '(' + esc(w.tcg_game) + ')' : ''}</div>
-          </div>
-          <button class="save-btn saved" data-wl-remove="${esc(w.card_id)}" style="width:auto;padding:6px 10px;font-size:0.75rem;position:absolute;right:8px;top:50%;transform:translateY(-50%);">&#9733;</button>
-        </div>
-      `;
-    });
-    gridDiv.innerHTML = html;
-
-    // Search for available listings
-    state.wishlist.forEach(async (w) => {
-      const el = gridDiv.querySelector('[data-wl-card="' + w.card_id + '"]');
-      if (!el) return;
-      try {
-        const listings = await cachedApi('GET', '/api/items/card/' + encodeURIComponent(w.card_id), 30000);
-        const available = (Array.isArray(listings) ? listings : []).filter(i => i.status === 'listed');
-        if (available.length) {
-          const lowest = Math.min(...available.map(i => i.price_cents || Infinity));
-          const badge = document.createElement('div');
-          badge.className = 'muted small';
-          badge.style.cssText = 'color:var(--accent);font-weight:600;margin-top:2px;';
-          badge.textContent = available.length + ' available from ' + cents(lowest);
-          el.querySelector('.vendor-item-info').appendChild(badge);
-          el.style.cursor = 'pointer';
-          el.addEventListener('click', (e) => {
-            if (e.target.closest('[data-wl-remove]')) return;
-            // Open the cheapest listing
-            const cheapest = available.reduce((a, b) => (a.price_cents || 0) < (b.price_cents || 0) ? a : b);
-            openDetailPanel(cheapest.id);
-          });
-        }
-      } catch(e) {}
-    });
-
-    // Remove from wishlist
-    $$('[data-wl-remove]', gridDiv).forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const cardId = btn.dataset.wlRemove;
-        state.wishlist = state.wishlist.filter(w => w.card_id !== cardId);
-        saveWishlist();
-        renderWishlistTab(root, eventId);
       });
     });
   }
@@ -2979,10 +2885,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <h2 style="margin-bottom:4px;">${esc(item.title || 'Unknown Card')}</h2>
             <div class="muted small">${item.tcg_set_name ? esc(item.tcg_set_name) : ''}${item.tcg_card_number ? ' &middot; #' + esc(item.tcg_card_number) : ''}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
-            ${item.tcg_card_id ? '<button class="save-btn ' + (isCardWishlisted(item.tcg_card_id) ? 'saved' : '') + '" id="dp-wishlist-btn" style="background:rgba(255,193,7,0.15);border-color:rgba(255,193,7,0.4);' + (isCardWishlisted(item.tcg_card_id) ? 'color:#fbbf24;' : '') + '">' + (isCardWishlisted(item.tcg_card_id) ? '&#9733; Wanted' : '&#9734; Want') + '</button>' : ''}
-          </div>
+          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn" style="flex-shrink:0;">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
         </div>
         <div style="margin-bottom:8px;">${tcgRarityBadge(item.tcg_rarity)} ${tcgCondBadge(item.tcg_condition)}</div>
         ${priceBarHtml}
@@ -3027,19 +2930,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         saveBtn.innerHTML = nowSaved ? '&#10084; Saved' : '&#9825; Save';
         updateSavedBadge();
         toast(nowSaved ? 'Added to saved items' : 'Removed from saved', 'success');
-      });
-    }
-
-    // Wishlist button handler
-    const wlBtn = body.querySelector('#dp-wishlist-btn');
-    if (wlBtn && item.tcg_card_id) {
-      wlBtn.addEventListener('click', () => {
-        toggleWishlistCard(item);
-        const nowWl = isCardWishlisted(item.tcg_card_id);
-        wlBtn.className = 'save-btn ' + (nowWl ? 'saved' : '');
-        wlBtn.style.cssText = 'background:rgba(255,193,7,0.15);border-color:rgba(255,193,7,0.4);' + (nowWl ? 'color:#fbbf24;' : '');
-        wlBtn.innerHTML = nowWl ? '&#9733; Wanted' : '&#9734; Want';
-        toast(nowWl ? 'Added to wishlist' : 'Removed from wishlist', 'success');
       });
     }
 
@@ -4216,7 +4106,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     loadSession();
     loadSavedItems();
-    loadWishlist();
 
     if (checkStripeReturn()) return;
 
