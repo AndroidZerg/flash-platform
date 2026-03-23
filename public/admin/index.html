@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>Flash Admin</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --card: #1a1a2e;
+  --card-hover: #222240;
+  --text: #ffffff;
+  --muted: #8892b0;
+  --accent: #2ec47a;
+  --accent-hover: #27a968;
+  --red: #e94560;
+  --red-hover: #d13a53;
+  --yellow: #f0c040;
+  --border: #2a2a4a;
+  --input-bg: #12121f;
+  --radius: 8px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+html, body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Toast ─────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.3s ease;
+  max-width: 400px;
+  word-break: break-word;
+}
+.toast.success { background: var(--accent); }
+.toast.error { background: var(--red); }
+.toast.info { background: #3b82f6; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── Login ─────────────────────────────────────── */
+#login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.login-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.login-card h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.login-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+.login-card input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-card input:focus { border-color: var(--accent); }
+.login-card .login-error {
+  color: var(--red);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  display: none;
+}
+
+/* ── Buttons ───────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  color: #fff;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-danger { background: var(--red); }
+.btn-danger:hover:not(:disabled) { background: var(--red-hover); }
+.btn-secondary { background: var(--border); }
+.btn-secondary:hover:not(:disabled) { background: #3a3a5a; }
+.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+.btn-full { width: 100%; }
+.btn-approve { background: var(--accent); }
+.btn-approve:hover:not(:disabled) { background: var(--accent-hover); }
+
+/* ── Dashboard Layout ──────────────────────────── */
+#dashboard { display: none; padding: 0; }
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar h1 span { color: var(--accent); }
+.topbar .logout-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: color 0.2s, border-color 0.2s;
+}
+.topbar .logout-btn:hover { color: var(--red); border-color: var(--red); }
+
+/* ── Stats Row ─────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 24px;
+}
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+.stat-card .stat-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+/* ── Tabs ──────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 24px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Filters ───────────────────────────────────── */
+.filter-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-row select, .filter-row input {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  min-width: 180px;
+}
+.filter-row select:focus, .filter-row input:focus { border-color: var(--accent); }
+.filter-row .btn { min-width: auto; }
+
+/* ── Table ─────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tr { transition: background 0.15s; }
+.data-table tbody tr:hover { background: rgba(46,196,122,0.04); }
+.data-table tbody tr.expandable { cursor: pointer; }
+.data-table tbody tr.expanded { background: var(--card); }
+
+/* ── Badges ────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-pending { background: rgba(240,192,64,0.15); color: var(--yellow); }
+.badge-active { background: rgba(46,196,122,0.15); color: var(--accent); }
+.badge-ended, .badge-archived { background: rgba(136,146,176,0.15); color: var(--muted); }
+.badge-draft { background: rgba(136,146,176,0.15); color: var(--muted); }
+.badge-listed { background: rgba(46,196,122,0.15); color: var(--accent); }
+.badge-sold { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.badge-removed { background: rgba(233,69,96,0.15); color: var(--red); }
+.badge-approved { background: rgba(46,196,122,0.15); color: var(--accent); }
+.badge-claimed { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.badge-preview { background: rgba(240,192,64,0.15); color: var(--yellow); }
+.badge-paid { background: rgba(46,196,122,0.15); color: var(--accent); }
+.badge-suspended { background: rgba(233,69,96,0.15); color: var(--red); }
+
+/* ── Inline Edit Form ──────────────────────────── */
+.edit-row { display: none; }
+.edit-row.open { display: table-row; }
+.edit-form {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+.edit-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.edit-form label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.edit-form input, .edit-form select, .edit-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus { border-color: var(--accent); }
+.edit-form textarea { resize: vertical; min-height: 60px; }
+.edit-form .form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Toggle Switch ─────────────────────────────── */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 24px;
+  transition: background 0.2s;
+}
+.toggle .slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+.toggle input:checked + .slider { background: var(--accent); }
+.toggle input:checked + .slider::before { transform: translateX(20px); }
+
+/* ── Thumbnail ─────────────────────────────────── */
+.thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--input-bg);
+}
+
+/* ── Loading / Empty ───────────────────────────── */
+.loading-msg, .empty-msg {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 20px;
+  font-size: 0.95rem;
+}
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Confirm Modal ─────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fade-in 0.15s ease;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 28px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.modal-box h3 { font-size: 1.1rem; margin-bottom: 8px; }
+.modal-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+.modal-box .modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Table overflow ────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+/* ── Responsive ────────────────────────────────── */
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); padding: 0 12px; }
+  .tab-content { padding: 16px 12px; }
+  .topbar { padding: 12px 16px; }
+  .tab-btn { padding: 10px 14px; font-size: 0.85rem; }
+  .filter-row select { min-width: 140px; }
+  .edit-form .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Flash Admin</h1>
+    <p>Enter admin secret to continue</p>
+    <div id="login-error" class="login-error"></div>
+    <input type="password" id="secret-input" placeholder="Admin Secret" autocomplete="off">
+    <button class="btn btn-primary btn-full" onclick="attemptLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <h1><span>Flash</span> Admin</h1>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-value" id="stat-total-events">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Events</div>
+      <div class="stat-value" id="stat-active-events">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Vendors</div>
+      <div class="stat-value" id="stat-total-vendors">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Items</div>
+      <div class="stat-value" id="stat-total-items">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Listed Items</div>
+      <div class="stat-value" id="stat-listed-items">--</div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('events')">Events</button>
+    <button class="tab-btn" onclick="switchTab('items')">Items</button>
+    <button class="tab-btn" onclick="switchTab('vendors')">Vendors</button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Events Tab -->
+    <div id="tab-events" class="tab-panel active">
+      <div id="events-loading" class="loading-msg"><span class="spinner"></span> Loading events...</div>
+      <div class="table-wrap">
+        <table class="data-table" id="events-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Join Code</th>
+              <th>Type</th>
+              <th>Location</th>
+              <th>Starts</th>
+              <th>Ends</th>
+              <th>Fee</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody"></tbody>
+        </table>
+      </div>
+      <div id="events-empty" class="empty-msg" style="display:none">No events found.</div>
+    </div>
+
+    <!-- Items Tab -->
+    <div id="tab-items" class="tab-panel">
+      <div class="filter-row">
+        <select id="items-event-filter" onchange="loadItems()">
+          <option value="">All Events</option>
+        </select>
+        <select id="items-status-filter" onchange="loadItems()">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="approved">Approved</option>
+          <option value="listed">Listed</option>
+          <option value="sold">Sold</option>
+          <option value="claimed">Claimed</option>
+          <option value="removed">Removed</option>
+        </select>
+      </div>
+      <div id="items-loading" class="loading-msg"><span class="spinner"></span> Loading items...</div>
+      <div class="table-wrap">
+        <table class="data-table" id="items-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Title</th>
+              <th>Price</th>
+              <th>Vendor</th>
+              <th>Status</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody"></tbody>
+        </table>
+      </div>
+      <div id="items-empty" class="empty-msg" style="display:none">No items found.</div>
+    </div>
+
+    <!-- Vendors Tab -->
+    <div id="tab-vendors" class="tab-panel">
+      <div class="filter-row">
+        <select id="vendors-event-filter" onchange="loadVendors()">
+          <option value="">All Events</option>
+        </select>
+      </div>
+      <div id="vendors-loading" class="loading-msg"><span class="spinner"></span> Loading vendors...</div>
+      <div class="table-wrap">
+        <table class="data-table" id="vendors-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Display Name</th>
+              <th>Booth</th>
+              <th>Status</th>
+              <th>Type</th>
+              <th>Event</th>
+              <th>Contact</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="vendors-tbody"></tbody>
+        </table>
+      </div>
+      <div id="vendors-empty" class="empty-msg" style="display:none">No vendors found.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-message">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirm-ok-btn" onclick="confirmAction()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   Flash Admin Dashboard — Vanilla JS
+   ================================================================ */
+
+const API = '/api/admin';
+let adminSecret = '';
+let allEvents = [];
+let allItems = [];
+let allVendors = [];
+let expandedRow = null;
+let pendingConfirm = null;
+
+// ── Toast ────────────────────────────────────────
+
+function toast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; }, 3000);
+  setTimeout(() => el.remove(), 3400);
+}
+
+// ── API Helper ───────────────────────────────────
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'x-admin-secret': adminSecret, 'Content-Type': 'application/json' }
+  };
+  if (body && method !== 'GET') opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) {
+    const errMsg = data.error || data.message || 'Request failed (' + res.status + ')';
+    throw new Error(errMsg);
+  }
+  return data;
+}
+
+// ── Auth ─────────────────────────────────────────
+
+function checkSession() {
+  const stored = sessionStorage.getItem('flash_admin_secret');
+  if (stored) {
+    adminSecret = stored;
+    showDashboard();
+  }
+}
+
+async function attemptLogin() {
+  const input = document.getElementById('secret-input');
+  const errEl = document.getElementById('login-error');
+  const secret = input.value.trim();
+  if (!secret) {
+    errEl.textContent = 'Please enter the admin secret.';
+    errEl.style.display = 'block';
+    return;
+  }
+  adminSecret = secret;
+  try {
+    await api('GET', '/stats');
+    sessionStorage.setItem('flash_admin_secret', secret);
+    errEl.style.display = 'none';
+    showDashboard();
+  } catch (err) {
+    errEl.textContent = 'Invalid secret or server error.';
+    errEl.style.display = 'block';
+    adminSecret = '';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('flash_admin_secret');
+  adminSecret = '';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('secret-input').value = '';
+}
+
+document.getElementById('secret-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') attemptLogin();
+});
+
+// ── Show Dashboard ───────────────────────────────
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadStats();
+  loadEvents();
+}
+
+// ── Tab Switching ────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[onclick="switchTab(\'' + tab + '\')"]').classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'events') loadEvents();
+  else if (tab === 'items') { populateEventFilter('items-event-filter'); loadItems(); }
+  else if (tab === 'vendors') { populateEventFilter('vendors-event-filter'); loadVendors(); }
+}
+
+// ── Stats ────────────────────────────────────────
+
+async function loadStats() {
+  try {
+    const stats = await api('GET', '/stats');
+    document.getElementById('stat-total-events').textContent = stats.total_events;
+    document.getElementById('stat-active-events').textContent = stats.active_events;
+    document.getElementById('stat-total-vendors').textContent = stats.total_vendors;
+    document.getElementById('stat-total-items').textContent = stats.total_items;
+    document.getElementById('stat-listed-items').textContent = stats.listed_items;
+  } catch (err) {
+    toast('Failed to load stats: ' + err.message, 'error');
+  }
+}
+
+// ── Utility ──────────────────────────────────────
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '--';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtDatetime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toISOString().slice(0, 16);
+}
+
+function fmtPrice(cents) {
+  if (cents == null) return '--';
+  return '$' + (cents / 100).toFixed(2);
+}
+
+function statusBadge(status) {
+  const cls = 'badge badge-' + (status || 'draft');
+  return '<span class="' + cls + '">' + esc(status || 'draft') + '</span>';
+}
+
+function populateEventFilter(selectId) {
+  const sel = document.getElementById(selectId);
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Events</option>';
+  allEvents.forEach(ev => {
+    sel.innerHTML += '<option value="' + ev.id + '"' + (ev.id === current ? ' selected' : '') + '>' + esc(ev.name) + '</option>';
+  });
+}
+
+function findEventName(eventId) {
+  const ev = allEvents.find(e => e.id === eventId);
+  return ev ? ev.name : '--';
+}
+
+function collapseAllEdits() {
+  document.querySelectorAll('.edit-row.open').forEach(r => r.classList.remove('open'));
+  document.querySelectorAll('tr.expanded').forEach(r => r.classList.remove('expanded'));
+  expandedRow = null;
+}
+
+function toggleEditRow(id, section) {
+  const editRow = document.getElementById(section + '-edit-' + id);
+  const dataRow = document.getElementById(section + '-row-' + id);
+  if (!editRow || !dataRow) return;
+
+  if (expandedRow === id) {
+    editRow.classList.remove('open');
+    dataRow.classList.remove('expanded');
+    expandedRow = null;
+  } else {
+    collapseAllEdits();
+    editRow.classList.add('open');
+    dataRow.classList.add('expanded');
+    expandedRow = id;
+  }
+}
+
+// ── Confirm Modal ────────────────────────────────
+
+function showConfirm(title, message, callback) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-modal').style.display = 'flex';
+  pendingConfirm = callback;
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').style.display = 'none';
+  pendingConfirm = null;
+}
+
+function confirmAction() {
+  if (pendingConfirm) pendingConfirm();
+  closeConfirm();
+}
+
+// ================================================================
+// EVENTS
+// ================================================================
+
+async function loadEvents() {
+  const loading = document.getElementById('events-loading');
+  const table = document.getElementById('events-table');
+  const empty = document.getElementById('events-empty');
+  loading.style.display = 'block';
+  table.style.display = 'none';
+  empty.style.display = 'none';
+  collapseAllEdits();
+
+  try {
+    allEvents = await api('GET', '/events');
+    if (allEvents.length === 0) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    renderEvents();
+    loading.style.display = 'none';
+    table.style.display = 'table';
+  } catch (err) {
+    loading.style.display = 'none';
+    toast('Failed to load events: ' + err.message, 'error');
+  }
+}
+
+function renderEvents() {
+  const tbody = document.getElementById('events-tbody');
+  tbody.innerHTML = '';
+
+  allEvents.forEach(ev => {
+    // Data Row
+    const tr = document.createElement('tr');
+    tr.className = 'expandable';
+    tr.id = 'events-row-' + ev.id;
+    tr.onclick = function() { toggleEditRow(ev.id, 'events'); };
+
+    const approveBtn = ev.status === 'pending'
+      ? '<button class="btn btn-approve btn-sm" onclick="event.stopPropagation(); approveEvent(\'' + ev.id + '\')">Approve</button>'
+      : '';
+
+    tr.innerHTML =
+      '<td><strong>' + esc(ev.name) + '</strong></td>' +
+      '<td>' + statusBadge(ev.status) + '</td>' +
+      '<td><code style="color:var(--accent);font-size:0.85rem">' + esc(ev.join_code) + '</code></td>' +
+      '<td>' + esc(ev.type) + '</td>' +
+      '<td>' + esc(ev.location_name || '--') + '</td>' +
+      '<td>' + fmtDate(ev.starts_at) + '</td>' +
+      '<td>' + fmtDate(ev.ends_at) + '</td>' +
+      '<td>' + fmtPrice(ev.vendor_fee_cents) + '</td>' +
+      '<td>' + approveBtn + '</td>';
+    tbody.appendChild(tr);
+
+    // Edit Row
+    const editTr = document.createElement('tr');
+    editTr.className = 'edit-row';
+    editTr.id = 'events-edit-' + ev.id;
+    editTr.innerHTML =
+      '<td colspan="9">' +
+        '<div class="edit-form">' +
+          '<div class="form-grid">' +
+            '<div><label>Name</label><input type="text" id="ev-name-' + ev.id + '" value="' + esc(ev.name) + '"></div>' +
+            '<div><label>Status</label>' +
+              '<select id="ev-status-' + ev.id + '">' +
+                '<option value="pending"' + (ev.status==='pending'?' selected':'') + '>Pending</option>' +
+                '<option value="draft"' + (ev.status==='draft'?' selected':'') + '>Draft</option>' +
+                '<option value="active"' + (ev.status==='active'?' selected':'') + '>Active</option>' +
+                '<option value="ended"' + (ev.status==='ended'?' selected':'') + '>Ended</option>' +
+                '<option value="archived"' + (ev.status==='archived'?' selected':'') + '>Archived</option>' +
+              '</select></div>' +
+            '<div><label>Description</label><textarea id="ev-desc-' + ev.id + '">' + esc(ev.description || '') + '</textarea></div>' +
+            '<div><label>Location</label><input type="text" id="ev-loc-' + ev.id + '" value="' + esc(ev.location_name || '') + '"></div>' +
+            '<div><label>Starts At</label><input type="datetime-local" id="ev-starts-' + ev.id + '" value="' + fmtDatetime(ev.starts_at) + '"></div>' +
+            '<div><label>Ends At</label><input type="datetime-local" id="ev-ends-' + ev.id + '" value="' + fmtDatetime(ev.ends_at) + '"></div>' +
+            '<div><label>Cover Image URL</label><input type="text" id="ev-cover-' + ev.id + '" value="' + esc(ev.cover_image_url || '') + '"></div>' +
+            '<div><label>Vendor Fee (cents)</label><input type="number" id="ev-fee-' + ev.id + '" value="' + (ev.vendor_fee_cents || 0) + '"></div>' +
+          '</div>' +
+          '<div class="form-actions">' +
+            '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteEvent(\'' + ev.id + '\', \'' + esc(ev.name).replace(/'/g, "\\'") + '\')">Delete</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); toggleEditRow(\'' + ev.id + '\', \'events\')">Cancel</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); saveEvent(\'' + ev.id + '\')">Save Changes</button>' +
+          '</div>' +
+        '</div>' +
+      '</td>';
+    // Prevent clicks inside edit form from toggling
+    editTr.onclick = function(e) { e.stopPropagation(); };
+    tbody.appendChild(editTr);
+  });
+}
+
+async function saveEvent(id) {
+  const body = {
+    name: document.getElementById('ev-name-' + id).value,
+    status: document.getElementById('ev-status-' + id).value,
+    description: document.getElementById('ev-desc-' + id).value,
+    location_name: document.getElementById('ev-loc-' + id).value,
+    starts_at: document.getElementById('ev-starts-' + id).value ? new Date(document.getElementById('ev-starts-' + id).value).toISOString() : undefined,
+    ends_at: document.getElementById('ev-ends-' + id).value ? new Date(document.getElementById('ev-ends-' + id).value).toISOString() : undefined,
+    cover_image_url: document.getElementById('ev-cover-' + id).value || null,
+    vendor_fee_cents: parseInt(document.getElementById('ev-fee-' + id).value) || 0
+  };
+
+  try {
+    await api('PUT', '/events/' + id, body);
+    toast('Event updated successfully.');
+    loadStats();
+    loadEvents();
+  } catch (err) {
+    toast('Failed to save event: ' + err.message, 'error');
+  }
+}
+
+async function approveEvent(id) {
+  try {
+    await api('PUT', '/events/' + id, { status: 'active' });
+    toast('Event approved and set to active.');
+    loadStats();
+    loadEvents();
+  } catch (err) {
+    toast('Failed to approve event: ' + err.message, 'error');
+  }
+}
+
+function deleteEvent(id, name) {
+  showConfirm('Delete Event', 'Permanently delete "' + name + '"? This will also delete all vendors and items in this event.', async function() {
+    try {
+      await api('DELETE', '/events/' + id);
+      toast('Event deleted.');
+      loadStats();
+      loadEvents();
+    } catch (err) {
+      toast('Failed to delete event: ' + err.message, 'error');
+    }
+  });
+}
+
+// ================================================================
+// ITEMS
+// ================================================================
+
+async function loadItems() {
+  const loading = document.getElementById('items-loading');
+  const table = document.getElementById('items-table');
+  const empty = document.getElementById('items-empty');
+  loading.style.display = 'block';
+  table.style.display = 'none';
+  empty.style.display = 'none';
+  collapseAllEdits();
+
+  const eventId = document.getElementById('items-event-filter').value;
+  const status = document.getElementById('items-status-filter').value;
+  let qs = '?';
+  if (eventId) qs += 'event_id=' + eventId + '&';
+  if (status) qs += 'status=' + status + '&';
+
+  try {
+    allItems = await api('GET', '/items' + qs);
+    if (allItems.length === 0) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    renderItems();
+    loading.style.display = 'none';
+    table.style.display = 'table';
+  } catch (err) {
+    loading.style.display = 'none';
+    toast('Failed to load items: ' + err.message, 'error');
+  }
+}
+
+function renderItems() {
+  const tbody = document.getElementById('items-tbody');
+  tbody.innerHTML = '';
+
+  allItems.forEach(item => {
+    const vendorName = item.vendors ? item.vendors.display_name : '--';
+    const thumb = item.thumbnail_url || item.photo_url;
+
+    // Data Row
+    const tr = document.createElement('tr');
+    tr.className = 'expandable';
+    tr.id = 'items-row-' + item.id;
+    tr.onclick = function() { toggleEditRow(item.id, 'items'); };
+
+    tr.innerHTML =
+      '<td>' + (thumb ? '<img class="thumb" src="' + esc(thumb) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '<div class="thumb" style="display:inline-block;"></div>') + '</td>' +
+      '<td><strong>' + esc(item.title || 'Untitled') + '</strong></td>' +
+      '<td>' + fmtPrice(item.price_cents) + '</td>' +
+      '<td>' + esc(vendorName) + '</td>' +
+      '<td>' + statusBadge(item.status) + '</td>' +
+      '<td>' + esc(item.category || '--') + '</td>' +
+      '<td>' + esc(item.type || '--') + '</td>' +
+      '<td>' + fmtDate(item.created_at) + '</td>';
+    tbody.appendChild(tr);
+
+    // Edit Row
+    const editTr = document.createElement('tr');
+    editTr.className = 'edit-row';
+    editTr.id = 'items-edit-' + item.id;
+    editTr.innerHTML =
+      '<td colspan="8">' +
+        '<div class="edit-form">' +
+          '<div class="form-grid">' +
+            '<div><label>Title</label><input type="text" id="it-title-' + item.id + '" value="' + esc(item.title || '') + '"></div>' +
+            '<div><label>Description</label><textarea id="it-desc-' + item.id + '">' + esc(item.description || '') + '</textarea></div>' +
+            '<div><label>Price (cents)</label><input type="number" id="it-price-' + item.id + '" value="' + (item.price_cents || '') + '"></div>' +
+            '<div><label>Status</label>' +
+              '<select id="it-status-' + item.id + '">' +
+                '<option value="draft"' + (item.status==='draft'?' selected':'') + '>Draft</option>' +
+                '<option value="approved"' + (item.status==='approved'?' selected':'') + '>Approved</option>' +
+                '<option value="listed"' + (item.status==='listed'?' selected':'') + '>Listed</option>' +
+                '<option value="sold"' + (item.status==='sold'?' selected':'') + '>Sold</option>' +
+                '<option value="claimed"' + (item.status==='claimed'?' selected':'') + '>Claimed</option>' +
+                '<option value="removed"' + (item.status==='removed'?' selected':'') + '>Removed</option>' +
+              '</select></div>' +
+            '<div><label>Category</label><input type="text" id="it-cat-' + item.id + '" value="' + esc(item.category || '') + '"></div>' +
+            '<div><label>Condition</label><input type="text" id="it-cond-' + item.id + '" value="' + esc(item.condition || '') + '"></div>' +
+          '</div>' +
+          '<div class="form-actions">' +
+            '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteItem(\'' + item.id + '\', \'' + esc(item.title || 'Untitled').replace(/'/g, "\\'") + '\')">Delete</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); toggleEditRow(\'' + item.id + '\', \'items\')">Cancel</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); saveItem(\'' + item.id + '\')">Save Changes</button>' +
+          '</div>' +
+        '</div>' +
+      '</td>';
+    editTr.onclick = function(e) { e.stopPropagation(); };
+    tbody.appendChild(editTr);
+  });
+}
+
+async function saveItem(id) {
+  const priceVal = document.getElementById('it-price-' + id).value;
+  const body = {
+    title: document.getElementById('it-title-' + id).value,
+    description: document.getElementById('it-desc-' + id).value,
+    price_cents: priceVal !== '' ? parseInt(priceVal) : null,
+    status: document.getElementById('it-status-' + id).value,
+    category: document.getElementById('it-cat-' + id).value,
+    condition: document.getElementById('it-cond-' + id).value
+  };
+
+  try {
+    await api('PUT', '/items/' + id, body);
+    toast('Item updated successfully.');
+    loadStats();
+    loadItems();
+  } catch (err) {
+    toast('Failed to save item: ' + err.message, 'error');
+  }
+}
+
+function deleteItem(id, title) {
+  showConfirm('Delete Item', 'Permanently delete "' + title + '"?', async function() {
+    try {
+      await api('DELETE', '/items/' + id);
+      toast('Item deleted.');
+      loadStats();
+      loadItems();
+    } catch (err) {
+      toast('Failed to delete item: ' + err.message, 'error');
+    }
+  });
+}
+
+// ================================================================
+// VENDORS
+// ================================================================
+
+async function loadVendors() {
+  const loading = document.getElementById('vendors-loading');
+  const table = document.getElementById('vendors-table');
+  const empty = document.getElementById('vendors-empty');
+  loading.style.display = 'block';
+  table.style.display = 'none';
+  empty.style.display = 'none';
+  collapseAllEdits();
+
+  const eventId = document.getElementById('vendors-event-filter').value;
+  let qs = eventId ? '?event_id=' + eventId : '';
+
+  try {
+    allVendors = await api('GET', '/vendors' + qs);
+    if (allVendors.length === 0) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    renderVendors();
+    loading.style.display = 'none';
+    table.style.display = 'table';
+  } catch (err) {
+    loading.style.display = 'none';
+    toast('Failed to load vendors: ' + err.message, 'error');
+  }
+}
+
+function renderVendors() {
+  const tbody = document.getElementById('vendors-tbody');
+  tbody.innerHTML = '';
+
+  allVendors.forEach(v => {
+    const eventName = findEventName(v.event_id);
+    const contact = v.contact_email || v.contact_phone || '--';
+
+    // Data Row
+    const tr = document.createElement('tr');
+    tr.className = 'expandable';
+    tr.id = 'vendors-row-' + v.id;
+    tr.onclick = function() { toggleEditRow(v.id, 'vendors'); };
+
+    tr.innerHTML =
+      '<td><strong>' + esc(v.display_name) + '</strong></td>' +
+      '<td>' + esc(v.booth_location || '--') + '</td>' +
+      '<td>' + statusBadge(v.status) + '</td>' +
+      '<td>' + esc(v.type || '--') + '</td>' +
+      '<td>' + esc(eventName) + '</td>' +
+      '<td style="font-size:0.82rem;color:var(--muted)">' + esc(contact) + '</td>' +
+      '<td>' + fmtDate(v.created_at) + '</td>';
+    tbody.appendChild(tr);
+
+    // Edit Row
+    const isLive = v.is_live !== false;
+    const editTr = document.createElement('tr');
+    editTr.className = 'edit-row';
+    editTr.id = 'vendors-edit-' + v.id;
+    editTr.innerHTML =
+      '<td colspan="7">' +
+        '<div class="edit-form">' +
+          '<div class="form-grid">' +
+            '<div><label>Display Name</label><input type="text" id="vn-name-' + v.id + '" value="' + esc(v.display_name) + '"></div>' +
+            '<div><label>Booth Location</label><input type="text" id="vn-booth-' + v.id + '" value="' + esc(v.booth_location || '') + '"></div>' +
+            '<div><label>Status</label>' +
+              '<select id="vn-status-' + v.id + '">' +
+                '<option value="preview"' + (v.status==='preview'?' selected':'') + '>Preview</option>' +
+                '<option value="paid"' + (v.status==='paid'?' selected':'') + '>Paid</option>' +
+                '<option value="active"' + (v.status==='active'?' selected':'') + '>Active</option>' +
+                '<option value="suspended"' + (v.status==='suspended'?' selected':'') + '>Suspended</option>' +
+              '</select></div>' +
+            '<div>' +
+              '<label>Is Live</label>' +
+              '<div class="toggle-wrap">' +
+                '<label class="toggle">' +
+                  '<input type="checkbox" id="vn-live-' + v.id + '"' + (isLive ? ' checked' : '') + '>' +
+                  '<span class="slider"></span>' +
+                '</label>' +
+                '<span style="font-size:0.85rem;color:var(--muted)" id="vn-live-label-' + v.id + '">' + (isLive ? 'Live' : 'Offline') + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="form-actions">' +
+            '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteVendor(\'' + v.id + '\', \'' + esc(v.display_name).replace(/'/g, "\\'") + '\')">Delete</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); toggleEditRow(\'' + v.id + '\', \'vendors\')">Cancel</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); saveVendor(\'' + v.id + '\')">Save Changes</button>' +
+          '</div>' +
+        '</div>' +
+      '</td>';
+    editTr.onclick = function(e) { e.stopPropagation(); };
+    tbody.appendChild(editTr);
+
+    // Wire up the toggle label
+    setTimeout(() => {
+      const cb = document.getElementById('vn-live-' + v.id);
+      const lbl = document.getElementById('vn-live-label-' + v.id);
+      if (cb && lbl) {
+        cb.addEventListener('change', function() { lbl.textContent = this.checked ? 'Live' : 'Offline'; });
+      }
+    }, 0);
+  });
+}
+
+async function saveVendor(id) {
+  const body = {
+    display_name: document.getElementById('vn-name-' + id).value,
+    booth_location: document.getElementById('vn-booth-' + id).value,
+    status: document.getElementById('vn-status-' + id).value,
+    is_live: document.getElementById('vn-live-' + id).checked
+  };
+
+  try {
+    await api('PUT', '/vendors/' + id, body);
+    toast('Vendor updated successfully.');
+    loadStats();
+    loadVendors();
+  } catch (err) {
+    toast('Failed to save vendor: ' + err.message, 'error');
+  }
+}
+
+function deleteVendor(id, name) {
+  showConfirm('Delete Vendor', 'Permanently delete "' + name + '" and all their items?', async function() {
+    try {
+      await api('DELETE', '/vendors/' + id);
+      toast('Vendor deleted.');
+      loadStats();
+      loadVendors();
+    } catch (err) {
+      toast('Failed to delete vendor: ' + err.message, 'error');
+    }
+  });
+}
+
+// ── Init ─────────────────────────────────────────
+checkSession();
+</script>
+</body>
+</html>

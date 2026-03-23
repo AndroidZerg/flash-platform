@@ -29,6 +29,10 @@ app.use('/api', require('./api/items'));
 app.use('/api', require('./api/analyze'));
 app.use('/api', require('./api/checkout'));
 app.use('/api/safe', require('./api/safe'));
+app.use('/api', require('./api/admin'));
+
+// Admin panel static files
+app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
 // Static files — serve based on product subdomain
 app.use((req, res, next) => {
@@ -61,5 +65,6 @@ app.listen(PORT, () => {
   console.log(`  Shop: http://localhost:${PORT}/?product=shop`);
   console.log(`  Menu: http://localhost:${PORT}/?product=menu`);
   console.log(`  Safe: http://localhost:${PORT}/?product=safe`);
+  console.log(`  Admin: http://localhost:${PORT}/admin`);
   console.log(`  Landing: http://localhost:${PORT}/`);
 });

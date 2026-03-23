@@ -228,6 +228,29 @@ router.put('/items/:id/view', async (req, res) => {
   }
 });
 
+// PUT /api/items/:id/save — Increment save count
+router.put('/items/:id/save', async (req, res) => {
+  try {
+    const { data: item } = await supabase.from('items')
+      .select('save_count')
+      .eq('id', req.params.id)
+      .single();
+
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    const { data, error } = await supabase.from('items')
+      .update({ save_count: (item.save_count || 0) + 1 })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/items/:id — Remove item
 router.delete('/items/:id', async (req, res) => {
   try {

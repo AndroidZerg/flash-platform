@@ -982,6 +982,101 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   padding: 10px 12px; background: var(--card); border-radius: var(--radius);
   margin-bottom: 6px; border: 1px solid var(--border);
 }
+
+/* --- Slide-up Detail Panel --- */
+.detail-panel-backdrop {
+  position: fixed; inset: 0; background: rgba(10,10,15,0.7);
+  z-index: 800; opacity: 0; transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.detail-panel-backdrop.open { opacity: 1; pointer-events: auto; }
+.detail-panel {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 480px; max-height: 92vh;
+  background: var(--bg); border-radius: 16px 16px 0 0;
+  z-index: 801; transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.6);
+}
+.detail-panel.open { transform: translateX(-50%) translateY(0); }
+.detail-panel-handle {
+  width: 36px; height: 4px; background: rgba(255,255,255,0.2);
+  border-radius: 2px; margin: 10px auto 6px;
+}
+.detail-panel-body { padding: 0 16px 32px; }
+.detail-panel-close {
+  position: absolute; top: 12px; right: 16px; background: none;
+  border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer;
+  z-index: 10; line-height: 1; padding: 4px;
+}
+.detail-panel-close:hover { color: var(--text); }
+
+/* --- Save/Wishlist Button --- */
+.save-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-btn); padding: 10px 16px;
+  color: var(--muted); cursor: pointer; font-size: 0.9rem;
+  font-family: inherit; font-weight: 600; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.save-btn:hover { border-color: var(--red); color: var(--red); }
+.save-btn.saved { border-color: var(--red); color: var(--red); background: rgba(233,69,96,0.1); }
+
+/* --- Saved Items Badge --- */
+.saved-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--red); color: #fff; font-size: 0.65rem;
+  font-weight: 700; min-width: 16px; height: 16px;
+  border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; padding: 0 4px;
+}
+.saved-tab-btn { position: relative; }
+
+/* --- Compare View --- */
+.compare-panel {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 480px; max-height: 80vh;
+  background: var(--bg); border-radius: 16px 16px 0 0;
+  z-index: 900; transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  overflow-y: auto; box-shadow: 0 -4px 30px rgba(0,0,0,0.6);
+}
+.compare-panel.open { transform: translateX(-50%) translateY(0); }
+.compare-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.compare-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; padding: 16px;
+}
+.compare-card {
+  background: var(--card); border-radius: var(--radius-card);
+  padding: 12px; text-align: center;
+}
+.compare-card img {
+  width: 100%; aspect-ratio: 1; object-fit: contain;
+  border-radius: 6px; margin-bottom: 8px; background: rgba(255,255,255,0.03);
+}
+.compare-card .cp-vendor { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+.compare-card .cp-price { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+.compare-card .cp-cond { font-size: 0.75rem; }
+.compare-best { border: 2px solid var(--accent); }
+
+/* --- Lazy load placeholder --- */
+.item-card img[data-src], .tcg-listing img[data-src] {
+  background: #0f0f1a;
+}
+
+/* --- Vendor filter chip --- */
+.vendor-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 16px; font-size: 0.75rem;
+  font-weight: 600; background: rgba(46,196,122,0.15);
+  color: var(--accent); margin-bottom: 8px; cursor: pointer;
+}
+.vendor-filter-chip .vf-clear {
+  font-size: 1rem; line-height: 1; margin-left: 2px;
+}
 </style>
 </head>
 <body>
@@ -1011,7 +1106,18 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     filterCategories: [],
     selectedCategories: [],
     filterSort: 'newest',
+    tcgGame: '',
+    tcgBelowMarket: false,
+    isTcgEvent: false,
+    filterVendorId: '',
+    browseVendors: [],
+    savedItems: [],
+    browseOffset: 0,
+    browseHasMore: true,
+    apiCache: {},
   };
+
+  const BROWSE_PAGE_SIZE = 50;
 
   // ---------- STORAGE ----------
   function save(k, v) { try { localStorage.setItem('fs_' + k, JSON.stringify(v)); } catch(e){} }
@@ -1039,6 +1145,47 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   function getToken() { return load('session_token'); }
   function getEventId() { return load('event_id'); }
   function getVendorId() { return load('vendor_id'); }
+
+  // ---------- SAVED ITEMS ----------
+  function loadSavedItems() {
+    state.savedItems = load('saved_items') || [];
+  }
+  function saveSavedItems() {
+    save('saved_items', state.savedItems);
+  }
+  function isItemSaved(itemId) {
+    return state.savedItems.some(s => String(s.id) === String(itemId));
+  }
+  function toggleSaveItem(item) {
+    const idx = state.savedItems.findIndex(s => String(s.id) === String(item.id));
+    if (idx >= 0) {
+      state.savedItems.splice(idx, 1);
+    } else {
+      state.savedItems.push({
+        id: item.id, title: item.title, price_cents: item.price_cents,
+        photo_url: item.photo_url || item.tcg_image_url,
+        vendor_name: item.vendors ? item.vendors.display_name : '',
+        vendor_id: item.vendor_id,
+        tcg_card_id: item.tcg_card_id || null,
+        tcg_game: item.tcg_game || null,
+        tcg_condition: item.tcg_condition || null,
+        tcg_market_price_cents: item.tcg_market_price_cents || null,
+      });
+      // Fire-and-forget save count increment
+      api('PUT', '/api/items/' + item.id + '/save').catch(() => {});
+    }
+    saveSavedItems();
+  }
+
+  // ---------- API CACHE ----------
+  async function cachedApi(method, url, ttlMs) {
+    const key = method + ':' + url;
+    const cached = state.apiCache[key];
+    if (cached && (Date.now() - cached.ts < (ttlMs || 30000))) return cached.data;
+    const data = await api(method, url);
+    state.apiCache[key] = { data, ts: Date.now() };
+    return data;
+  }
 
   // ---------- UTILS ----------
   function $(sel, parent) { return (parent || document).querySelector(sel); }
@@ -1480,10 +1627,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     tab = tab || 'shop';
     state.activeTab = tab;
-    state.tcgGame = '';
-    state.tcgBelowMarket = false;
+    if (tab !== 'saved') {
+      state.tcgGame = '';
+      state.tcgBelowMarket = false;
+    }
+    state.browseOffset = 0;
+    state.browseHasMore = true;
 
     const eventName = state.event ? state.event.name : 'Marketplace';
+    const savedCount = state.savedItems.length;
 
     root.innerHTML = `
       <div class="header">
@@ -1493,12 +1645,16 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <div class="tab-bar">
         <button class="tab-btn ${tab === 'shop' ? 'active' : ''}" data-tab="shop">&#128717; Shop</button>
         <button class="tab-btn ${tab === 'menu' ? 'active' : ''}" data-tab="menu">&#127828; Menu</button>
+        <button class="tab-btn saved-tab-btn ${tab === 'saved' ? 'active' : ''}" data-tab="saved">&#10084; Saved<span class="saved-badge" style="${savedCount ? '' : 'display:none;'}">${savedCount}</span></button>
       </div>
-      <div id="tcg-tabs-area"></div>
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search items...">
-        <button class="filter-btn" id="filter-open-btn">&#9776;</button>
-      </div>
+      ${tab !== 'saved' ? `
+        <div id="tcg-tabs-area"></div>
+        <div id="vendor-filter-area"></div>
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Search items...">
+          <button class="filter-btn" id="filter-open-btn">&#9776;</button>
+        </div>
+      ` : ''}
       <div id="browse-grid"><div class="center muted" style="padding:24px;">Loading...</div></div>
     `;
 
@@ -1511,10 +1667,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       });
     });
 
+    if (tab === 'saved') {
+      renderSavedItems(root, eventId);
+      return;
+    }
+
     let searchTimeout = null;
     const searchInput = $('#search-input', root);
 
     function doSearch() {
+      state.browseOffset = 0;
+      state.browseHasMore = true;
       loadBrowseItems(root, eventId, state.activeTab, searchInput.value.trim(), state.selectedCategories, state.filterSort);
     }
 
@@ -1529,7 +1692,100 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     state.selectedCategories = [];
     state.filterSort = 'newest';
+    state.filterVendorId = '';
     doSearch();
+  }
+
+  // ---------- SAVED ITEMS TAB ----------
+  function renderSavedItems(root, eventId) {
+    const gridDiv = $('#browse-grid', root);
+    if (!state.savedItems.length) {
+      gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#10084;</div><p>No saved items yet</p><p class="small muted">Tap the heart on any item to save it</p></div>';
+      return;
+    }
+
+    // Group by vendor
+    const byVendor = {};
+    state.savedItems.forEach(s => {
+      const vn = s.vendor_name || 'Unknown Vendor';
+      if (!byVendor[vn]) byVendor[vn] = [];
+      byVendor[vn].push(s);
+    });
+
+    // Find comparable cards (same tcg_card_id, different vendors)
+    const cardGroups = {};
+    state.savedItems.filter(s => s.tcg_card_id).forEach(s => {
+      const base = s.tcg_card_id.replace(/-graded$/, '');
+      if (!cardGroups[base]) cardGroups[base] = [];
+      cardGroups[base].push(s);
+    });
+    const comparableCards = Object.values(cardGroups).filter(g => g.length >= 2);
+
+    let html = '';
+
+    if (comparableCards.length) {
+      html += '<div style="margin-bottom:16px;">';
+      comparableCards.forEach(group => {
+        html += '<button class="btn btn-outline btn-small" style="margin-bottom:6px;" data-compare-ids="' + group.map(g => g.id).join(',') + '">Compare ' + esc(group[0].title || 'Card') + ' (' + group.length + ' vendors)</button>';
+      });
+      html += '</div>';
+    }
+
+    Object.keys(byVendor).forEach(vn => {
+      html += '<h3 style="margin-bottom:8px;">' + esc(vn) + '</h3>';
+      byVendor[vn].forEach(s => {
+        html += `
+          <div class="vendor-item" data-id="${esc(s.id)}" style="position:relative;">
+            <img src="${s.photo_url ? esc(s.photo_url) : placeholderImg()}" alt="" style="width:56px;height:56px;" onerror="this.src='${placeholderImg()}'">
+            <div class="vendor-item-info">
+              <div class="item-title">${esc(s.title || 'Untitled')}</div>
+              <div class="item-meta">
+                <span style="color:var(--accent);font-weight:700;">${cents(s.price_cents)}</span>
+                ${s.tcg_condition ? '<span>' + tcgCondBadge(s.tcg_condition) + '</span>' : ''}
+              </div>
+            </div>
+            <button class="save-btn saved" data-remove-id="${esc(s.id)}" style="width:auto;padding:6px 10px;font-size:0.75rem;position:absolute;right:8px;top:50%;transform:translateY(-50%);">&#10084;</button>
+          </div>
+        `;
+      });
+      html += '<div class="spacer"></div>';
+    });
+
+    gridDiv.innerHTML = html;
+
+    // Item clicks open detail panel
+    $$('.vendor-item', gridDiv).forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-remove-id]')) return;
+        openDetailPanel(el.dataset.id);
+      });
+    });
+
+    // Remove buttons
+    $$('[data-remove-id]', gridDiv).forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.removeId;
+        state.savedItems = state.savedItems.filter(s => String(s.id) !== String(id));
+        saveSavedItems();
+        updateSavedBadge();
+        renderSavedItems(root, eventId);
+      });
+    });
+
+    // Compare buttons
+    $$('[data-compare-ids]', gridDiv).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ids = btn.dataset.compareIds.split(',');
+        // Get full items from browseItems or savedItems
+        const items = ids.map(id => {
+          return state.browseItems.find(i => String(i.id) === String(id))
+            || state.savedItems.find(s => String(s.id) === String(id))
+            || { id, title: 'Item', price_cents: 0 };
+        });
+        openCompareView(items);
+      });
+    });
   }
 
   function tcgRarityBadge(rarity) {
@@ -1574,12 +1830,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     if (query) url += '&q=' + encodeURIComponent(query);
     if (categories && categories.length === 1) url += '&category=' + encodeURIComponent(categories[0]);
     if (sort && sort !== 'newest' && sort !== 'popular' && sort !== 'best_deal') url += '&sort=' + encodeURIComponent(sort);
-    // TCG filters
     if (state.tcgGame) url += '&tcg_game=' + encodeURIComponent(state.tcgGame);
     if (state.tcgBelowMarket) url += '&below_market=true';
+    if (state.filterVendorId) url += '&vendor_id=' + encodeURIComponent(state.filterVendorId);
 
     try {
-      const result = await api('GET', url);
+      const result = await cachedApi('GET', url, 15000);
       let list = Array.isArray(result) ? result : (result.items || []);
 
       if (categories && categories.length > 1) {
@@ -1597,23 +1853,44 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         });
       }
 
-      // Filter out items without photos (client-side safety net)
       list = list.filter(item => item.photo_url && item.photo_url.trim() !== '');
 
       state.browseItems = list;
 
+      // Collect unique vendors for filter
+      const vendorMap = {};
+      list.forEach(i => {
+        if (i.vendors && i.vendors.display_name) {
+          vendorMap[i.vendor_id] = i.vendors.display_name;
+        }
+      });
+      state.browseVendors = Object.entries(vendorMap).map(([id, name]) => ({ id, name }));
+
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
       state.filterCategories = cats;
 
-      // Detect TCG mode: check if items have tcg_game
       const isTcg = list.some(i => i.tcg_game);
       state.isTcgEvent = isTcg;
 
-      // Render TCG game tabs if applicable
+      // Render vendor filter chip
+      const vfArea = $('#vendor-filter-area', root);
+      if (vfArea && state.filterVendorId) {
+        const vName = state.browseVendors.find(v => v.id === state.filterVendorId);
+        vfArea.innerHTML = '<div class="vendor-filter-chip" id="clear-vendor-filter">' + esc(vName ? vName.name : 'Vendor') + ' <span class="vf-clear">&times;</span></div>';
+        $('#clear-vendor-filter', vfArea).addEventListener('click', () => {
+          state.filterVendorId = '';
+          // Invalidate cache for this query
+          state.apiCache = {};
+          loadBrowseItems(root, eventId, tab, $('#search-input', root)?.value?.trim() || '', state.selectedCategories, state.filterSort);
+        });
+      } else if (vfArea) {
+        vfArea.innerHTML = '';
+      }
+
+      // TCG game tabs
       const tcgArea = $('#tcg-tabs-area', root);
       if (tcgArea && isTcg && tab === 'shop') {
         const games = [...new Set(list.map(i => i.tcg_game).filter(Boolean))];
-        // Also add below market toggle
         tcgArea.innerHTML = `
           <div class="tcg-game-tabs">
             <div class="tcg-game-tab ${!state.tcgGame ? 'active' : ''}" data-game="">All</div>
@@ -1629,12 +1906,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         $$('.tcg-game-tab', tcgArea).forEach(t => {
           t.addEventListener('click', () => {
             state.tcgGame = t.dataset.game;
+            state.apiCache = {};
             loadBrowseItems(root, eventId, tab, $('#search-input', root)?.value?.trim() || '', state.selectedCategories, state.filterSort);
           });
         });
         const bmToggle = $('#below-market-toggle', tcgArea);
         if (bmToggle) bmToggle.addEventListener('change', () => {
           state.tcgBelowMarket = bmToggle.checked;
+          state.apiCache = {};
           loadBrowseItems(root, eventId, tab, $('#search-input', root)?.value?.trim() || '', state.selectedCategories, state.filterSort);
         });
       } else if (tcgArea) {
@@ -1648,15 +1927,19 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
       const isMenu = tab === 'menu';
 
-      // TCG layout: horizontal list cards
+      // Pagination: show first BROWSE_PAGE_SIZE
+      const pageList = list.slice(0, BROWSE_PAGE_SIZE);
+      const hasMore = list.length > BROWSE_PAGE_SIZE;
+
+      // TCG layout
       if (isTcg && !isMenu) {
-        gridDiv.innerHTML = list.map(item => {
+        gridDiv.innerHTML = pageList.map(item => {
           const imgUrl = item.tcg_image_url || item.photo_url || '';
           const vendorName = item.vendors ? item.vendors.display_name : '';
           const booth = item.vendors ? item.vendors.booth_location : '';
           return `
             <div class="tcg-listing" data-id="${esc(item.id)}">
-              <img src="${esc(imgUrl)}" alt="" onerror="this.style.opacity='0.3'">
+              <img data-src="${esc(imgUrl)}" src="${placeholderImg()}" alt="">
               <div class="tcg-info">
                 <div class="tcg-name">${esc(item.title || 'Unknown Card')}</div>
                 <div class="tcg-set">${esc(item.tcg_set_name || '')}${item.tcg_card_number ? ' \u00b7 #' + esc(item.tcg_card_number) : ''}</div>
@@ -1673,23 +1956,26 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
               </div>
             </div>
           `;
-        }).join('');
+        }).join('') + (hasMore ? '<button class="btn btn-secondary" id="load-more-btn" style="margin-top:12px;">Load More (' + (list.length - BROWSE_PAGE_SIZE) + ' remaining)</button>' : '');
 
         $$('.tcg-listing', gridDiv).forEach(el => {
-          el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+          el.addEventListener('click', () => openDetailPanel(el.dataset.id));
         });
+
+        if (hasMore) setupLoadMore(gridDiv, list, root, eventId, tab, true);
+        setupLazyLoad(gridDiv);
         return;
       }
 
       // Standard grid layout
-      gridDiv.innerHTML = '<div class="item-grid">' + list.map(item => {
+      gridDiv.innerHTML = '<div class="item-grid">' + pageList.map(item => {
         const pUrl = photoUrl(item);
         const vendorName = item.vendors ? item.vendors.display_name : '';
         const diets = isMenu ? dietaryPillsHtml(item) : '';
         const spice = isMenu ? spiceLevelHtml(item) : '';
         return `
           <div class="item-card" data-id="${esc(item.id)}">
-            <img src="${pUrl ? esc(pUrl) : placeholderImg()}" alt="" onerror="this.closest('.item-card').style.display='none'">
+            <img data-src="${pUrl ? esc(pUrl) : placeholderImg()}" src="${placeholderImg()}" alt="">
             <div class="item-info">
               <div class="item-title">${esc(item.title || 'Untitled')}</div>
               <div class="item-price">${cents(item.price_cents)}</div>
@@ -1700,15 +1986,106 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             </div>
           </div>
         `;
-      }).join('') + '</div>';
+      }).join('') + '</div>' + (hasMore ? '<button class="btn btn-secondary" id="load-more-btn" style="margin-top:12px;">Load More (' + (list.length - BROWSE_PAGE_SIZE) + ' remaining)</button>' : '');
 
       $$('.item-card', gridDiv).forEach(el => {
-        el.addEventListener('click', () => navigate('#item/' + el.dataset.id));
+        el.addEventListener('click', () => openDetailPanel(el.dataset.id));
       });
+
+      if (hasMore) setupLoadMore(gridDiv, list, root, eventId, tab, false);
+      setupLazyLoad(gridDiv);
 
     } catch(e) {
       gridDiv.innerHTML = '<p class="center muted">Failed to load items: ' + esc(e.message) + '</p>';
     }
+  }
+
+  // ---------- LAZY LOAD IMAGES ----------
+  function setupLazyLoad(container) {
+    if (!('IntersectionObserver' in window)) {
+      // Fallback: load all immediately
+      container.querySelectorAll('img[data-src]').forEach(img => {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      });
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          img.onerror = () => { img.style.opacity = '0.3'; };
+          observer.unobserve(img);
+        }
+      });
+    }, { rootMargin: '200px' });
+
+    container.querySelectorAll('img[data-src]').forEach(img => observer.observe(img));
+  }
+
+  // ---------- LOAD MORE PAGINATION ----------
+  function setupLoadMore(gridDiv, allItems, root, eventId, tab, isTcg) {
+    let shown = BROWSE_PAGE_SIZE;
+    const btn = $('#load-more-btn', gridDiv);
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const nextBatch = allItems.slice(shown, shown + BROWSE_PAGE_SIZE);
+      shown += nextBatch.length;
+      const remaining = allItems.length - shown;
+
+      const isMenu = tab === 'menu';
+      let newHtml = '';
+
+      if (isTcg) {
+        newHtml = nextBatch.map(item => {
+          const imgUrl = item.tcg_image_url || item.photo_url || '';
+          const vendorName = item.vendors ? item.vendors.display_name : '';
+          const booth = item.vendors ? item.vendors.booth_location : '';
+          return '<div class="tcg-listing" data-id="' + esc(item.id) + '"><img data-src="' + esc(imgUrl) + '" src="' + placeholderImg() + '" alt=""><div class="tcg-info"><div class="tcg-name">' + esc(item.title || 'Unknown Card') + '</div><div class="tcg-set">' + esc(item.tcg_set_name || '') + (item.tcg_card_number ? ' \u00b7 #' + esc(item.tcg_card_number) : '') + '</div><div class="tcg-badges">' + tcgRarityBadge(item.tcg_rarity) + tcgCondBadge(item.tcg_condition) + '</div><div class="tcg-prices"><span class="tcg-vendor-price">' + cents(item.price_cents) + '</span>' + (item.tcg_market_price_cents ? '<span class="tcg-market-price">Mkt: ' + cents(item.tcg_market_price_cents) + '</span>' : '') + tcgDealHtml(item.price_cents, item.tcg_market_price_cents) + '</div><div class="tcg-vendor-label">' + esc(vendorName) + (booth ? ' \u00b7 ' + esc(booth) : '') + '</div></div></div>';
+        }).join('');
+      } else {
+        const gridContainer = gridDiv.querySelector('.item-grid');
+        newHtml = nextBatch.map(item => {
+          const pUrl = photoUrl(item);
+          const vendorName = item.vendors ? item.vendors.display_name : '';
+          const diets = isMenu ? dietaryPillsHtml(item) : '';
+          const spice = isMenu ? spiceLevelHtml(item) : '';
+          return '<div class="item-card" data-id="' + esc(item.id) + '"><img data-src="' + (pUrl ? esc(pUrl) : placeholderImg()) + '" src="' + placeholderImg() + '" alt=""><div class="item-info"><div class="item-title">' + esc(item.title || 'Untitled') + '</div><div class="item-price">' + cents(item.price_cents) + '</div>' + (vendorName ? '<div class="item-vendor">' + esc(vendorName) + '</div>' : '') + (diets ? '<div class="item-diets">' + diets + '</div>' : '') + (spice ? '<div style="margin-top:4px;">' + spice + '</div>' : '') + '</div></div>';
+        }).join('');
+
+        if (gridContainer) {
+          gridContainer.insertAdjacentHTML('beforeend', newHtml);
+          gridContainer.querySelectorAll('.item-card:not([data-bound])').forEach(el => {
+            el.setAttribute('data-bound', '1');
+            el.addEventListener('click', () => openDetailPanel(el.dataset.id));
+          });
+          setupLazyLoad(gridContainer);
+          if (remaining > 0) {
+            btn.textContent = 'Load More (' + remaining + ' remaining)';
+          } else {
+            btn.remove();
+          }
+          return;
+        }
+      }
+
+      // Insert for TCG
+      btn.insertAdjacentHTML('beforebegin', newHtml);
+      gridDiv.querySelectorAll('.tcg-listing:not([data-bound])').forEach(el => {
+        el.setAttribute('data-bound', '1');
+        el.addEventListener('click', () => openDetailPanel(el.dataset.id));
+      });
+      setupLazyLoad(gridDiv);
+
+      if (remaining > 0) {
+        btn.textContent = 'Load More (' + remaining + ' remaining)';
+      } else {
+        btn.remove();
+      }
+    });
   }
 
   function openFilterModal(root, eventId, searchInput) {
@@ -1731,12 +2108,23 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       sortOptions.push({ value: 'best_deal', label: 'Best Deal' });
     }
 
+    const vendors = state.browseVendors || [];
+
     backdrop.innerHTML = `
       <div class="filter-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;">Filters</h3>
           <button style="background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;" id="filter-close">&times;</button>
         </div>
+        ${vendors.length > 1 ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Vendor</div>
+            <select id="vendor-filter-select" style="width:100%;padding:10px 14px;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-btn);color:var(--text);font-size:0.9rem;font-family:inherit;">
+              <option value="">All Vendors</option>
+              ${vendors.map(v => '<option value="' + esc(v.id) + '" ' + (state.filterVendorId === v.id ? 'selected' : '') + '>' + esc(v.name) + '</option>').join('')}
+            </select>
+          </div>
+        ` : ''}
         ${cats.length ? `
           <div class="filter-section">
             <div class="filter-section-title">Category</div>
@@ -1798,18 +2186,30 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       $$('#sort-options .checkbox-pill', backdrop).forEach(p => {
         p.classList.toggle('selected', p.dataset.sort === 'newest');
       });
+      const vendorSelect = $('#vendor-filter-select', backdrop);
+      if (vendorSelect) vendorSelect.value = '';
     });
 
     $('#filter-apply', backdrop).addEventListener('click', () => {
       state.selectedCategories = selectedCats;
       state.filterSort = selectedSort;
+      const vendorSelect = $('#vendor-filter-select', backdrop);
+      state.filterVendorId = vendorSelect ? vendorSelect.value : '';
+      state.apiCache = {};
       backdrop.remove();
       loadBrowseItems(root, eventId, state.activeTab, searchInput.value.trim(), state.selectedCategories, state.filterSort);
     });
   }
 
-  // ---------- #item/:itemId (Item Detail Page) ----------
+  // ---------- #item/:itemId (Item Detail Page — opens panel, falls back to inline) ----------
   function renderItemDetail(root, itemId) {
+    // If we have browse context, open as panel and go back
+    if (state.browseItems.length) {
+      openDetailPanel(itemId);
+      window.history.back();
+      return;
+    }
+    // Fallback: render inline for direct links
     root.innerHTML = `
       <div class="header">
         <button class="back-btn" id="item-back">&larr;</button>
@@ -1970,6 +2370,287 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     } catch(e) {
       console.error('Other sellers error:', e);
     }
+  }
+
+  // ---------- SLIDE-UP DETAIL PANEL ----------
+  let detailPanelOpen = false;
+  function openDetailPanel(itemId) {
+    if (detailPanelOpen) closeDetailPanel();
+    detailPanelOpen = true;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'detail-panel-backdrop';
+    backdrop.id = 'detail-backdrop';
+
+    const panel = document.createElement('div');
+    panel.className = 'detail-panel';
+    panel.id = 'detail-panel';
+    panel.innerHTML = `
+      <div class="detail-panel-handle"></div>
+      <button class="detail-panel-close" id="dp-close">&times;</button>
+      <div class="detail-panel-body" id="dp-body">
+        <div class="center muted" style="padding:32px;">Loading...</div>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(panel);
+
+    // Animate open
+    requestAnimationFrame(() => {
+      backdrop.classList.add('open');
+      panel.classList.add('open');
+    });
+
+    // Close handlers
+    backdrop.addEventListener('click', closeDetailPanel);
+    panel.querySelector('#dp-close').addEventListener('click', closeDetailPanel);
+
+    // Swipe-down-to-close gesture
+    let startY = 0, currentY = 0, isDragging = false;
+    const handle = panel.querySelector('.detail-panel-handle');
+
+    panel.addEventListener('touchstart', (e) => {
+      if (panel.scrollTop > 10) return;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      panel.style.transition = 'none';
+    }, { passive: true });
+
+    panel.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const dy = currentY - startY;
+      if (dy > 0) {
+        panel.style.transform = 'translateX(-50%) translateY(' + dy + 'px)';
+      }
+    }, { passive: true });
+
+    panel.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      panel.style.transition = '';
+      const dy = currentY - startY;
+      if (dy > 120) {
+        closeDetailPanel();
+      } else {
+        panel.style.transform = '';
+        panel.classList.add('open');
+      }
+    });
+
+    // Increment view count
+    api('PUT', '/api/items/' + encodeURIComponent(itemId) + '/view').catch(() => {});
+
+    // Load content
+    loadPanelDetail(itemId);
+  }
+
+  function closeDetailPanel() {
+    detailPanelOpen = false;
+    const backdrop = document.getElementById('detail-backdrop');
+    const panel = document.getElementById('detail-panel');
+    if (backdrop) { backdrop.classList.remove('open'); setTimeout(() => backdrop.remove(), 300); }
+    if (panel) { panel.classList.remove('open'); panel.style.transform = ''; setTimeout(() => panel.remove(), 300); }
+  }
+
+  async function loadPanelDetail(itemId) {
+    const body = document.querySelector('#dp-body');
+    if (!body) return;
+
+    let item = state.browseItems.find(i => String(i.id) === String(itemId))
+             || state.items.find(i => String(i.id) === String(itemId));
+    if (!item) {
+      try { item = await api('GET', '/api/items/' + encodeURIComponent(itemId)); } catch(e) {
+        body.innerHTML = '<p class="center muted">Item not found</p>';
+        return;
+      }
+    }
+
+    const pUrl = item.tcg_image_url || photoUrl(item);
+    const isSaved = isItemSaved(item.id);
+    const isFood = item.type === 'food';
+    const conditionLabels = { new: 'New', like_new: 'Like New', good: 'Good', fair: 'Fair', poor: 'Poor' };
+    const diets = dietaryPillsHtml(item);
+    const spice = spiceLevelHtml(item);
+
+    const vendorName = item.vendors ? item.vendors.display_name : '';
+    const vendorLogo = item.vendors ? item.vendors.logo_url : '';
+    const vendorInitial = vendorName ? vendorName[0].toUpperCase() : 'V';
+    const boothLoc = item.vendors ? item.vendors.booth_location : '';
+
+    const vendorHtml = `
+      <div class="vendor-info-card">
+        ${vendorLogo ? '<img class="vendor-avatar" src="' + esc(vendorLogo) + '" alt="" onerror="this.outerHTML=\'<div class=vendor-avatar-placeholder>' + esc(vendorInitial) + '</div>\'">' : '<div class="vendor-avatar-placeholder">' + esc(vendorInitial) + '</div>'}
+        <div>
+          <div style="font-weight:600;">${esc(vendorName)}</div>
+          ${boothLoc ? '<div class="muted small">' + esc(boothLoc) + '</div>' : ''}
+        </div>
+      </div>
+    `;
+
+    let contentHtml = '';
+
+    // TCG detail
+    if (item.tcg_game) {
+      const mktCents = item.tcg_market_price_cents;
+      let priceBarHtml = '';
+      if (mktCents) {
+        priceBarHtml = `
+          <div class="tcg-price-bar">
+            <div class="vendor-col">
+              <div class="muted small">Vendor</div>
+              <div style="font-size:1.3rem;font-weight:800;">${cents(item.price_cents)}</div>
+            </div>
+            <div class="vs">vs</div>
+            <div class="vendor-col">
+              <div class="muted small">Market</div>
+              <div style="font-size:1.3rem;font-weight:800;color:var(--muted);">${cents(mktCents)}</div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-bottom:12px;">${tcgDealHtml(item.price_cents, mktCents)}</div>
+        `;
+      }
+      contentHtml = `
+        ${pUrl ? '<img class="tcg-detail-img" src="' + esc(pUrl) + '" alt="">' : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div style="flex:1;min-width:0;">
+            <h2 style="margin-bottom:4px;">${esc(item.title || 'Unknown Card')}</h2>
+            <div class="muted small">${item.tcg_set_name ? esc(item.tcg_set_name) : ''}${item.tcg_card_number ? ' &middot; #' + esc(item.tcg_card_number) : ''}</div>
+          </div>
+          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+        </div>
+        <div style="margin-bottom:8px;">${tcgRarityBadge(item.tcg_rarity)} ${tcgCondBadge(item.tcg_condition)}</div>
+        ${priceBarHtml}
+        ${item.description ? '<div class="card"><p class="small">' + esc(item.description) + '</p></div>' : ''}
+        <hr class="divider">
+        ${vendorHtml}
+        <div id="dp-other-sellers"></div>
+      `;
+    } else {
+      // Standard item
+      contentHtml = `
+        ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <h2 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h2>
+            <span class="detail-price">${cents(item.price_cents)}</span>
+            ${item.price_note ? '<span style="color:var(--muted);font-size:0.85rem;margin-left:8px;">' + esc(item.price_note) + '</span>' : ''}
+          </div>
+          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+        </div>
+        ${isFood && diets ? '<div style="margin-bottom:8px;">' + diets + '</div>' : ''}
+        ${isFood && spice ? '<div style="margin-bottom:8px;">' + spice + '</div>' : ''}
+        ${isFood && item.optional_proteins ? '<p class="muted small" style="margin-bottom:8px;">Optional proteins: <strong style="color:var(--text);">' + esc(item.optional_proteins) + '</strong></p>' : ''}
+        ${!isFood && item.condition ? '<p class="muted small" style="margin-bottom:12px;">Condition: <strong style="color:var(--text);">' + esc(conditionLabels[item.condition] || item.condition) + '</strong></p>' : ''}
+        ${item.category ? '<p class="muted small" style="margin-bottom:12px;">Category: ' + esc(item.category) + '</p>' : ''}
+        ${item.description ? '<div class="card"><p class="small">' + esc(item.description) + '</p></div>' : ''}
+        <hr class="divider">
+        ${vendorHtml}
+      `;
+    }
+
+    body.innerHTML = contentHtml;
+
+    // Save button handler
+    const saveBtn = body.querySelector('#dp-save-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        toggleSaveItem(item);
+        const nowSaved = isItemSaved(item.id);
+        saveBtn.className = 'save-btn ' + (nowSaved ? 'saved' : '');
+        saveBtn.innerHTML = nowSaved ? '&#10084; Saved' : '&#9825; Save';
+        updateSavedBadge();
+        toast(nowSaved ? 'Added to saved items' : 'Removed from saved', 'success');
+      });
+    }
+
+    // Load other sellers for TCG
+    if (item.tcg_card_id) {
+      const container = body.querySelector('#dp-other-sellers');
+      if (container) {
+        const baseCardId = item.tcg_card_id.replace(/-graded$/, '');
+        const others = state.browseItems.filter(i =>
+          i.id !== item.id && i.tcg_card_id && i.tcg_card_id.replace(/-graded$/, '') === baseCardId
+        );
+        if (others.length) {
+          container.innerHTML = `
+            <div style="font-weight:700;margin-bottom:8px;">${others.length} other vendor${others.length > 1 ? 's' : ''}</div>
+            ${others.map(o => {
+              const vn = o.vendors ? o.vendors.display_name : '';
+              const bl = o.vendors ? o.vendors.booth_location : '';
+              return '<div class="tcg-other-seller" data-id="' + esc(o.id) + '" style="cursor:pointer;"><div><div style="font-weight:600;font-size:0.85rem;">' + esc(vn) + '</div><div class="muted" style="font-size:0.75rem;">' + esc(bl) + ' &middot; ' + esc(o.tcg_condition || '') + '</div></div><div style="text-align:right;"><div style="font-weight:800;">' + cents(o.price_cents) + '</div>' + (o.tcg_market_price_cents ? '<div style="font-size:0.7rem;">' + tcgDealHtml(o.price_cents, o.tcg_market_price_cents) + '</div>' : '') + '</div></div>';
+            }).join('')}
+          `;
+          container.querySelectorAll('.tcg-other-seller').forEach(el => {
+            el.addEventListener('click', () => {
+              closeDetailPanel();
+              setTimeout(() => openDetailPanel(el.dataset.id), 100);
+            });
+          });
+        }
+      }
+    }
+  }
+
+  // ---------- COMPARE VIEW ----------
+  function openCompareView(items) {
+    const existing = document.querySelector('.compare-panel');
+    if (existing) existing.remove();
+
+    // Sort by price
+    items.sort((a, b) => (a.price_cents || 0) - (b.price_cents || 0));
+    const bestId = items[0] ? items[0].id : null;
+
+    const panel = document.createElement('div');
+    panel.className = 'compare-panel';
+    panel.innerHTML = `
+      <div class="compare-header">
+        <h3 style="margin:0;">Compare Prices</h3>
+        <button style="background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;" id="compare-close">&times;</button>
+      </div>
+      <div class="compare-grid">
+        ${items.map(item => {
+          const img = item.tcg_image_url || item.photo_url || '';
+          const vName = item.vendors ? item.vendors.display_name : (item.vendor_name || '');
+          const isBest = String(item.id) === String(bestId);
+          return `
+            <div class="compare-card ${isBest ? 'compare-best' : ''}" data-id="${esc(item.id)}">
+              ${isBest ? '<div style="font-size:0.7rem;font-weight:700;color:var(--accent);margin-bottom:4px;">BEST PRICE</div>' : '<div style="height:18px;"></div>'}
+              ${img ? '<img src="' + esc(img) + '" alt="">' : ''}
+              <div class="cp-vendor">${esc(vName)}</div>
+              <div class="cp-price">${cents(item.price_cents)}</div>
+              ${item.tcg_condition ? '<div class="cp-cond">' + tcgCondBadge(item.tcg_condition) + '</div>' : ''}
+              ${item.tcg_market_price_cents ? '<div style="margin-top:4px;font-size:0.7rem;">' + tcgDealHtml(item.price_cents, item.tcg_market_price_cents) + '</div>' : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+    requestAnimationFrame(() => panel.classList.add('open'));
+
+    panel.querySelector('#compare-close').addEventListener('click', () => {
+      panel.classList.remove('open');
+      setTimeout(() => panel.remove(), 300);
+    });
+
+    panel.querySelectorAll('.compare-card').forEach(card => {
+      card.addEventListener('click', () => {
+        panel.classList.remove('open');
+        setTimeout(() => { panel.remove(); openDetailPanel(card.dataset.id); }, 300);
+      });
+    });
+  }
+
+  // ---------- SAVED ITEMS BADGE ----------
+  function updateSavedBadge() {
+    const badges = document.querySelectorAll('.saved-badge');
+    badges.forEach(b => {
+      b.textContent = state.savedItems.length;
+      b.style.display = state.savedItems.length ? 'flex' : 'none';
+    });
   }
 
   // ---------- #join/:eventId (Vendor Onboarding) ----------
@@ -2865,6 +3546,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     }
 
     loadSession();
+    loadSavedItems();
 
     if (checkStripeReturn()) return;
 
