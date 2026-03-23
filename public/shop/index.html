@@ -1112,6 +1112,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     filterVendorId: '',
     browseVendors: [],
     savedItems: [],
+    selectedRarities: [],
+    filterRarities: [],
     browseOffset: 0,
     browseHasMore: true,
     apiCache: {},
@@ -1227,6 +1229,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   function photoUrl(item) {
     if (!item) return '';
     if (item.photo_url) return item.photo_url;
+    if (item.tcg_image_url) return item.tcg_image_url;
     if (item.photos && item.photos.length) return item.photos[0];
     return '';
   }
@@ -1693,6 +1696,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.selectedCategories = [];
     state.filterSort = 'newest';
     state.filterVendorId = '';
+    state.selectedRarities = [];
     doSearch();
   }
 
@@ -1724,9 +1728,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     let html = '';
 
     if (comparableCards.length) {
-      html += '<div style="margin-bottom:16px;">';
+      html += '<div style="margin-bottom:16px;"><div class="muted small" style="margin-bottom:6px;">Cards from multiple vendors:</div>';
       comparableCards.forEach(group => {
-        html += '<button class="btn btn-outline btn-small" style="margin-bottom:6px;" data-compare-ids="' + group.map(g => g.id).join(',') + '">Compare ' + esc(group[0].title || 'Card') + ' (' + group.length + ' vendors)</button>';
+        const prices = group.map(g => g.price_cents || 0).sort((a, b) => a - b);
+        const priceRange = prices.length > 1 ? cents(prices[0]) + ' - ' + cents(prices[prices.length - 1]) : cents(prices[0]);
+        html += '<button class="btn btn-outline btn-small" style="margin-bottom:6px;width:100%;text-align:left;" data-compare-ids="' + group.map(g => g.id).join(',') + '"><span style="font-weight:700;">Compare ' + esc(group[0].title || 'Card') + '</span><br><span class="muted small">' + group.length + ' vendors &middot; ' + priceRange + '</span></button>';
       });
       html += '</div>';
     }
@@ -1833,6 +1839,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     if (state.tcgGame) url += '&tcg_game=' + encodeURIComponent(state.tcgGame);
     if (state.tcgBelowMarket) url += '&below_market=true';
     if (state.filterVendorId) url += '&vendor_id=' + encodeURIComponent(state.filterVendorId);
+    if (state.selectedRarities && state.selectedRarities.length) url += '&tcg_rarity=' + encodeURIComponent(state.selectedRarities.join(','));
 
     try {
       const result = await cachedApi('GET', url, 15000);
@@ -1853,7 +1860,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         });
       }
 
-      list = list.filter(item => item.photo_url && item.photo_url.trim() !== '');
+      list = list.filter(item => (item.photo_url && item.photo_url.trim() !== '') || (item.tcg_image_url && item.tcg_image_url.trim() !== ''));
 
       state.browseItems = list;
 
@@ -1868,6 +1875,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
       state.filterCategories = cats;
+
+      // Collect rarities for filter (only update when not filtering by rarity)
+      if (!state.selectedRarities || !state.selectedRarities.length) {
+        state.filterRarities = [...new Set(list.map(i => i.tcg_rarity).filter(Boolean))];
+      }
 
       const isTcg = list.some(i => i.tcg_game);
       state.isTcgEvent = isTcg;
@@ -2016,7 +2028,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           const img = entry.target;
           img.src = img.dataset.src;
           img.removeAttribute('data-src');
-          img.onerror = () => { img.style.opacity = '0.3'; };
+          img.onerror = () => {
+            const card = img.closest('.item-card') || img.closest('.tcg-listing');
+            if (card) card.style.display = 'none';
+            else img.style.display = 'none';
+          };
           observer.unobserve(img);
         }
       });
@@ -2125,6 +2141,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             </select>
           </div>
         ` : ''}
+        ${isTcg && (state.filterRarities || []).length ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Rarity</div>
+            <div class="checkbox-group" id="rarity-checkboxes">
+              ${(state.filterRarities || []).map(r => `<div class="checkbox-pill ${state.selectedRarities.includes(r) ? 'selected' : ''}" data-rarity="${esc(r)}">${tcgRarityBadge(r)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
         ${cats.length ? `
           <div class="filter-section">
             <div class="filter-section-title">Category</div>
@@ -2151,6 +2175,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     let selectedCats = [...state.selectedCategories];
     let selectedSort = state.filterSort;
+    let selectedRarities = [...(state.selectedRarities || [])];
 
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
@@ -2171,6 +2196,19 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       });
     });
 
+    $$('#rarity-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const r = pill.dataset.rarity;
+        if (selectedRarities.includes(r)) {
+          selectedRarities = selectedRarities.filter(x => x !== r);
+          pill.classList.remove('selected');
+        } else {
+          selectedRarities.push(r);
+          pill.classList.add('selected');
+        }
+      });
+    });
+
     $$('#sort-options .checkbox-pill', backdrop).forEach(pill => {
       pill.addEventListener('click', () => {
         $$('#sort-options .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
@@ -2182,7 +2220,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     $('#filter-reset', backdrop).addEventListener('click', () => {
       selectedCats = [];
       selectedSort = 'newest';
+      selectedRarities = [];
       $$('#cat-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#rarity-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       $$('#sort-options .checkbox-pill', backdrop).forEach(p => {
         p.classList.toggle('selected', p.dataset.sort === 'newest');
       });
@@ -2193,6 +2233,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     $('#filter-apply', backdrop).addEventListener('click', () => {
       state.selectedCategories = selectedCats;
       state.filterSort = selectedSort;
+      state.selectedRarities = selectedRarities;
       const vendorSelect = $('#vendor-filter-select', backdrop);
       state.filterVendorId = vendorSelect ? vendorSelect.value : '';
       state.apiCache = {};
@@ -2458,13 +2499,18 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     const body = document.querySelector('#dp-body');
     if (!body) return;
 
-    let item = state.browseItems.find(i => String(i.id) === String(itemId))
-             || state.items.find(i => String(i.id) === String(itemId));
+    let item = null;
+    try {
+      item = await api('GET', '/api/items/' + encodeURIComponent(itemId));
+    } catch(e) {
+      // Fall back to cached data
+      item = state.browseItems.find(i => String(i.id) === String(itemId))
+               || state.items.find(i => String(i.id) === String(itemId))
+               || state.savedItems.find(s => String(s.id) === String(itemId));
+    }
     if (!item) {
-      try { item = await api('GET', '/api/items/' + encodeURIComponent(itemId)); } catch(e) {
-        body.innerHTML = '<p class="center muted">Item not found</p>';
-        return;
-      }
+      body.innerHTML = '<p class="center muted">Item not found</p>';
+      return;
     }
 
     const pUrl = item.tcg_image_url || photoUrl(item);
@@ -2480,11 +2526,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     const boothLoc = item.vendors ? item.vendors.booth_location : '';
 
     const vendorHtml = `
-      <div class="vendor-info-card">
+      <div class="vendor-info-card" style="cursor:pointer;" data-vendor-filter-id="${esc(item.vendor_id)}" title="Tap to filter by this vendor">
         ${vendorLogo ? '<img class="vendor-avatar" src="' + esc(vendorLogo) + '" alt="" onerror="this.outerHTML=\'<div class=vendor-avatar-placeholder>' + esc(vendorInitial) + '</div>\'">' : '<div class="vendor-avatar-placeholder">' + esc(vendorInitial) + '</div>'}
         <div>
           <div style="font-weight:600;">${esc(vendorName)}</div>
           ${boothLoc ? '<div class="muted small">' + esc(boothLoc) + '</div>' : ''}
+          <div class="muted small" style="color:var(--accent);font-size:0.7rem;">Tap to see all items &rsaquo;</div>
         </div>
       </div>
     `;
@@ -2513,12 +2560,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       }
       contentHtml = `
         ${pUrl ? '<img class="tcg-detail-img" src="' + esc(pUrl) + '" alt="">' : ''}
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px;">
           <div style="flex:1;min-width:0;">
             <h2 style="margin-bottom:4px;">${esc(item.title || 'Unknown Card')}</h2>
             <div class="muted small">${item.tcg_set_name ? esc(item.tcg_set_name) : ''}${item.tcg_card_number ? ' &middot; #' + esc(item.tcg_card_number) : ''}</div>
           </div>
-          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn" style="flex-shrink:0;">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
         </div>
         <div style="margin-bottom:8px;">${tcgRarityBadge(item.tcg_rarity)} ${tcgCondBadge(item.tcg_condition)}</div>
         ${priceBarHtml}
@@ -2531,13 +2578,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       // Standard item
       contentHtml = `
         ${pUrl ? '<img class="detail-photo" src="' + esc(pUrl) + '" alt="" onerror="this.style.display=\'none\'">' : ''}
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-          <div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px;">
+          <div style="flex:1;min-width:0;">
             <h2 style="margin-bottom:4px;">${esc(item.title || 'Untitled')}</h2>
             <span class="detail-price">${cents(item.price_cents)}</span>
             ${item.price_note ? '<span style="color:var(--muted);font-size:0.85rem;margin-left:8px;">' + esc(item.price_note) + '</span>' : ''}
           </div>
-          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn" style="flex-shrink:0;">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
         </div>
         ${isFood && diets ? '<div style="margin-bottom:8px;">' + diets + '</div>' : ''}
         ${isFood && spice ? '<div style="margin-bottom:8px;">' + spice + '</div>' : ''}
@@ -2565,29 +2612,56 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       });
     }
 
+    // Vendor tap to filter
+    const vendorCard = body.querySelector('[data-vendor-filter-id]');
+    if (vendorCard) {
+      vendorCard.addEventListener('click', () => {
+        state.filterVendorId = vendorCard.dataset.vendorFilterId;
+        state.apiCache = {};
+        closeDetailPanel();
+        const eid = item.event_id || getEventId();
+        if (eid) navigate('#browse/' + eid + '/' + (state.activeTab || 'shop'));
+      });
+    }
+
     // Load other sellers for TCG
     if (item.tcg_card_id) {
       const container = body.querySelector('#dp-other-sellers');
       if (container) {
-        const baseCardId = item.tcg_card_id.replace(/-graded$/, '');
-        const others = state.browseItems.filter(i =>
-          i.id !== item.id && i.tcg_card_id && i.tcg_card_id.replace(/-graded$/, '') === baseCardId
-        );
-        if (others.length) {
-          container.innerHTML = `
-            <div style="font-weight:700;margin-bottom:8px;">${others.length} other vendor${others.length > 1 ? 's' : ''}</div>
-            ${others.map(o => {
-              const vn = o.vendors ? o.vendors.display_name : '';
-              const bl = o.vendors ? o.vendors.booth_location : '';
-              return '<div class="tcg-other-seller" data-id="' + esc(o.id) + '" style="cursor:pointer;"><div><div style="font-weight:600;font-size:0.85rem;">' + esc(vn) + '</div><div class="muted" style="font-size:0.75rem;">' + esc(bl) + ' &middot; ' + esc(o.tcg_condition || '') + '</div></div><div style="text-align:right;"><div style="font-weight:800;">' + cents(o.price_cents) + '</div>' + (o.tcg_market_price_cents ? '<div style="font-size:0.7rem;">' + tcgDealHtml(o.price_cents, o.tcg_market_price_cents) + '</div>' : '') + '</div></div>';
-            }).join('')}
-          `;
-          container.querySelectorAll('.tcg-other-seller').forEach(el => {
-            el.addEventListener('click', () => {
-              closeDetailPanel();
-              setTimeout(() => openDetailPanel(el.dataset.id), 100);
+        container.innerHTML = '<div class="muted small" style="padding:8px;">Loading other sellers...</div>';
+        try {
+          const baseCardId = item.tcg_card_id.replace(/-graded$/, '');
+          const cardListings = await api('GET', '/api/items/card/' + encodeURIComponent(baseCardId));
+          const others = (Array.isArray(cardListings) ? cardListings : []).filter(i => String(i.id) !== String(item.id));
+          if (others.length) {
+            container.innerHTML = `
+              <div style="font-weight:700;margin-bottom:8px;">${others.length} other vendor${others.length > 1 ? 's' : ''}</div>
+              ${others.map(o => {
+                const vn = o.vendors ? o.vendors.display_name : '';
+                const bl = o.vendors ? o.vendors.booth_location : '';
+                return '<div class="tcg-other-seller" data-id="' + esc(o.id) + '" style="cursor:pointer;"><div><div style="font-weight:600;font-size:0.85rem;">' + esc(vn) + '</div><div class="muted" style="font-size:0.75rem;">' + esc(bl) + ' &middot; ' + esc(o.tcg_condition || '') + '</div></div><div style="text-align:right;"><div style="font-weight:800;">' + cents(o.price_cents) + '</div>' + (o.tcg_market_price_cents ? '<div style="font-size:0.7rem;">' + tcgDealHtml(o.price_cents, o.tcg_market_price_cents) + '</div>' : '') + '</div></div>';
+              }).join('')}
+              <button class="btn btn-outline btn-small" id="dp-compare-btn" style="margin-top:8px;width:100%;">Compare All ${others.length + 1} Vendors</button>
+            `;
+            container.querySelectorAll('.tcg-other-seller').forEach(el => {
+              el.addEventListener('click', () => {
+                closeDetailPanel();
+                setTimeout(() => openDetailPanel(el.dataset.id), 150);
+              });
             });
-          });
+            const compareBtn = container.querySelector('#dp-compare-btn');
+            if (compareBtn) {
+              compareBtn.addEventListener('click', () => {
+                const allListings = [item, ...others];
+                closeDetailPanel();
+                setTimeout(() => openCompareView(allListings), 150);
+              });
+            }
+          } else {
+            container.innerHTML = '';
+          }
+        } catch(e) {
+          container.innerHTML = '<div class="muted small" style="padding:8px;">Could not load other sellers</div>';
         }
       }
     }
@@ -2601,13 +2675,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     // Sort by price
     items.sort((a, b) => (a.price_cents || 0) - (b.price_cents || 0));
     const bestId = items[0] ? items[0].id : null;
+    const cardName = items[0] ? (items[0].title || 'Cards') : 'Cards';
 
     const panel = document.createElement('div');
     panel.className = 'compare-panel';
     panel.innerHTML = `
       <div class="compare-header">
-        <h3 style="margin:0;">Compare Prices</h3>
-        <button style="background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;" id="compare-close">&times;</button>
+        <div style="flex:1;min-width:0;">
+          <h3 style="margin:0;">Compare: ${esc(cardName)}</h3>
+          <div class="muted small">${items.length} seller${items.length !== 1 ? 's' : ''} &middot; sorted by price</div>
+        </div>
+        <button style="background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;flex-shrink:0;" id="compare-close">&times;</button>
       </div>
       <div class="compare-grid">
         ${items.map(item => {

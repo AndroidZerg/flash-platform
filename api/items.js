@@ -98,11 +98,15 @@ router.get('/items', async (req, res) => {
     if (q) query = query.textSearch('search_text', q, { type: 'websearch' });
     // TCG filters
     if (tcg_game) query = query.eq('tcg_game', tcg_game);
-    if (tcg_rarity) query = query.eq('tcg_rarity', tcg_rarity);
+    if (tcg_rarity) {
+      const rarities = tcg_rarity.split(',').map(r => r.trim()).filter(Boolean);
+      if (rarities.length === 1) query = query.eq('tcg_rarity', rarities[0]);
+      else if (rarities.length > 1) query = query.in('tcg_rarity', rarities);
+    }
     if (tcg_condition) query = query.eq('tcg_condition', tcg_condition);
     // below_market filtering done in post-processing below
-    // Exclude items without photos
-    query = query.not('photo_url', 'is', null).neq('photo_url', '');
+    // Exclude items without any image (photo or TCG image)
+    query = query.or('photo_url.neq.,tcg_image_url.neq.');
 
     if (sort === 'price_asc') query = query.order('price_cents', { ascending: true });
     else if (sort === 'price_desc') query = query.order('price_cents', { ascending: false });
@@ -268,9 +272,10 @@ router.delete('/items/:id', async (req, res) => {
 // GET /api/items/card/:tcg_card_id — All vendor listings for a specific card
 router.get('/items/card/:tcg_card_id', async (req, res) => {
   try {
+    const baseId = req.params.tcg_card_id.replace(/-graded$/, '');
     const { data, error } = await supabase.from('items')
       .select('*, vendors(display_name, booth_location, logo_url)')
-      .eq('tcg_card_id', req.params.tcg_card_id)
+      .or('tcg_card_id.eq.' + baseId + ',tcg_card_id.eq.' + baseId + '-graded')
       .in('status', ['listed', 'sold'])
       .order('price_cents', { ascending: true });
 
@@ -292,6 +297,21 @@ router.post('/items/analyze-menuboard', upload.single('photo'), async (req, res)
 
     // result should be an array of {name, price_cents}
     res.json({ items: Array.isArray(result) ? result : [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/items/:id — Single item detail
+router.get('/items/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('items')
+      .select('*, vendors(display_name, booth_location, logo_url)')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error) return res.status(404).json({ error: 'Item not found' });
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
