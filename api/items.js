@@ -83,7 +83,8 @@ router.post('/items', upload.single('photo'), async (req, res) => {
 router.get('/items', async (req, res) => {
   try {
     const { event_id, status, q, category, min_price, max_price, sort, vendor_id, type,
-            tcg_game, tcg_rarity, tcg_condition, below_market, grading_company } = req.query;
+            tcg_game, tcg_rarity, tcg_condition, below_market, grading_company,
+            tcg_set_name, tcg_language, tcg_variant, tcg_is_foil, tcg_card_type } = req.query;
 
     let query = supabase.from('items').select('*, vendors(display_name, booth_location, logo_url)');
 
@@ -111,7 +112,28 @@ router.get('/items', async (req, res) => {
     if (grading_company && grading_company !== 'ungraded') {
       query = query.ilike('tcg_condition', grading_company + '%');
     }
-    // below_market + ungraded filtering done in post-processing below
+    // Set name filter
+    if (tcg_set_name) {
+      const sets = tcg_set_name.split(',').map(s => s.trim()).filter(Boolean);
+      if (sets.length === 1) query = query.eq('tcg_set_name', sets[0]);
+      else if (sets.length > 1) query = query.in('tcg_set_name', sets);
+    }
+    // Language filter
+    if (tcg_language) {
+      const langs = tcg_language.split(',').map(l => l.trim()).filter(Boolean);
+      if (langs.length === 1) query = query.eq('tcg_language', langs[0]);
+      else if (langs.length > 1) query = query.in('tcg_language', langs);
+    }
+    // Variant filter
+    if (tcg_variant) {
+      const variants = tcg_variant.split(',').map(v => v.trim()).filter(Boolean);
+      if (variants.length === 1) query = query.eq('tcg_variant', variants[0]);
+      else if (variants.length > 1) query = query.in('tcg_variant', variants);
+    }
+    // Foil filter
+    if (tcg_is_foil === 'true') query = query.eq('tcg_is_foil', true);
+    else if (tcg_is_foil === 'false') query = query.eq('tcg_is_foil', false);
+    // below_market + ungraded + card_type filtering done in post-processing below
     // Exclude items without any image (photo or TCG image)
     query = query.or('photo_url.neq.,tcg_image_url.neq.');
 
@@ -128,6 +150,15 @@ router.get('/items', async (req, res) => {
     }
     if (grading_company === 'ungraded' && data) {
       data = data.filter(i => !i.tcg_condition || !/^(PSA|CGC|BGS)\s/i.test(i.tcg_condition));
+    }
+    // Card type post-processing (from ai_description or category)
+    if (tcg_card_type && data) {
+      const types = tcg_card_type.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      data = data.filter(i => {
+        const cat = (i.category || '').toLowerCase();
+        const desc = i.ai_description ? JSON.stringify(i.ai_description).toLowerCase() : '';
+        return types.some(t => cat.includes(t) || desc.includes(t));
+      });
     }
     res.json(data || []);
   } catch (err) {

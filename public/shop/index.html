@@ -1118,6 +1118,16 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     selectedConditions: [],
     gradingCompany: '',
     selectedGrades: [],
+    selectedSets: [],
+    filterSets: [],
+    selectedLanguages: [],
+    filterLanguages: [],
+    selectedVariants: [],
+    filterVariants: [],
+    filterFoil: '',
+    selectedCardTypes: [],
+    filterCardTypes: [],
+    wishlist: [],
     _tcgDefaultsApplied: false,
     browseOffset: 0,
     browseHasMore: true,
@@ -1153,12 +1163,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   function getEventId() { return load('event_id'); }
   function getVendorId() { return load('vendor_id'); }
 
-  // ---------- SAVED ITEMS ----------
+  // ---------- SAVED ITEMS (scoped to event) ----------
+  function savedKey() { return 'saved_' + (getEventId() || 'global'); }
   function loadSavedItems() {
-    state.savedItems = load('saved_items') || [];
+    state.savedItems = load(savedKey()) || [];
   }
   function saveSavedItems() {
-    save('saved_items', state.savedItems);
+    save(savedKey(), state.savedItems);
   }
   function isItemSaved(itemId) {
     return state.savedItems.some(s => String(s.id) === String(itemId));
@@ -1182,6 +1193,34 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       api('PUT', '/api/items/' + item.id + '/save').catch(() => {});
     }
     saveSavedItems();
+  }
+
+  // ---------- WISHLIST (card-level, separate from saved listings) ----------
+  function wishlistKey() { return 'wishlist_' + (getEventId() || 'global'); }
+  function loadWishlist() { state.wishlist = load(wishlistKey()) || []; }
+  function saveWishlist() { save(wishlistKey(), state.wishlist); }
+  function isCardWishlisted(cardId) {
+    if (!cardId) return false;
+    const base = cardId.replace(/-graded$/, '');
+    return state.wishlist.some(w => w.card_id.replace(/-graded$/, '') === base);
+  }
+  function toggleWishlistCard(item) {
+    if (!item.tcg_card_id) return;
+    const base = item.tcg_card_id.replace(/-graded$/, '');
+    const idx = state.wishlist.findIndex(w => w.card_id.replace(/-graded$/, '') === base);
+    if (idx >= 0) {
+      state.wishlist.splice(idx, 1);
+    } else {
+      state.wishlist.push({
+        card_id: base,
+        title: item.title || 'Unknown Card',
+        tcg_game: item.tcg_game || '',
+        tcg_set_name: item.tcg_set_name || '',
+        tcg_image_url: item.tcg_image_url || item.photo_url || '',
+        added_at: new Date().toISOString(),
+      });
+    }
+    saveWishlist();
   }
 
   // ---------- API CACHE ----------
@@ -1642,6 +1681,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.browseOffset = 0;
     state.browseHasMore = true;
 
+    // Reload saved items + wishlist scoped to this event
+    loadSavedItems();
+    loadWishlist();
+
     const eventName = state.event ? state.event.name : 'Marketplace';
     const savedCount = state.savedItems.length;
 
@@ -1654,8 +1697,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         <button class="tab-btn ${tab === 'shop' ? 'active' : ''}" data-tab="shop">&#128717; Shop</button>
         <button class="tab-btn ${tab === 'menu' ? 'active' : ''}" data-tab="menu">&#127828; Menu</button>
         <button class="tab-btn saved-tab-btn ${tab === 'saved' ? 'active' : ''}" data-tab="saved">&#10084; Saved<span class="saved-badge" style="${savedCount ? '' : 'display:none;'}">${savedCount}</span></button>
+        <button class="tab-btn ${tab === 'wishlist' ? 'active' : ''}" data-tab="wishlist">&#9733; Wants</button>
       </div>
-      ${tab !== 'saved' ? `
+      ${tab !== 'saved' && tab !== 'wishlist' ? `
         <div id="tcg-tabs-area"></div>
         <div id="vendor-filter-area"></div>
         <div class="search-bar">
@@ -1677,6 +1721,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     if (tab === 'saved') {
       renderSavedItems(root, eventId);
+      return;
+    }
+    if (tab === 'wishlist') {
+      renderWishlistTab(root, eventId);
       return;
     }
 
@@ -1705,6 +1753,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.selectedConditions = [];
     state.gradingCompany = '';
     state.selectedGrades = [];
+    state.selectedSets = [];
+    state.selectedLanguages = [];
+    state.selectedVariants = [];
+    state.filterFoil = '';
+    state.selectedCardTypes = [];
     state._tcgDefaultsApplied = false;
     doSearch();
   }
@@ -1734,7 +1787,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     });
     const comparableCards = Object.values(cardGroups).filter(g => g.length >= 2);
 
-    let html = '';
+    let html = renderCartOptimizer(state.savedItems);
 
     if (comparableCards.length) {
       html += '<div style="margin-bottom:16px;"><div class="muted small" style="margin-bottom:6px;">Cards from multiple vendors:</div>';
@@ -1803,6 +1856,98 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     });
   }
 
+  // ---------- WISHLIST TAB ----------
+  function renderWishlistTab(root, eventId) {
+    const gridDiv = $('#browse-grid', root);
+    if (!state.wishlist.length) {
+      gridDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9733;</div><p>No wishlist cards yet</p><p class="small muted">Tap the star on any card to add it to your wishlist</p></div>';
+      return;
+    }
+    let html = '<p class="muted small" style="margin-bottom:12px;">Cards you\'re looking for. We\'ll highlight matches in the shop.</p>';
+    state.wishlist.forEach(w => {
+      html += `
+        <div class="vendor-item" data-wl-card="${esc(w.card_id)}" style="position:relative;">
+          <img src="${w.tcg_image_url ? esc(w.tcg_image_url) : placeholderImg()}" alt="" style="width:56px;height:56px;object-fit:contain;border-radius:4px;" onerror="this.src='${placeholderImg()}'">
+          <div class="vendor-item-info">
+            <div class="item-title">${esc(w.title)}</div>
+            <div class="muted small">${esc(w.tcg_set_name || '')} ${w.tcg_game ? '(' + esc(w.tcg_game) + ')' : ''}</div>
+          </div>
+          <button class="save-btn saved" data-wl-remove="${esc(w.card_id)}" style="width:auto;padding:6px 10px;font-size:0.75rem;position:absolute;right:8px;top:50%;transform:translateY(-50%);">&#9733;</button>
+        </div>
+      `;
+    });
+    gridDiv.innerHTML = html;
+
+    // Search for available listings
+    state.wishlist.forEach(async (w) => {
+      const el = gridDiv.querySelector('[data-wl-card="' + w.card_id + '"]');
+      if (!el) return;
+      try {
+        const listings = await cachedApi('GET', '/api/items/card/' + encodeURIComponent(w.card_id), 30000);
+        const available = (Array.isArray(listings) ? listings : []).filter(i => i.status === 'listed');
+        if (available.length) {
+          const lowest = Math.min(...available.map(i => i.price_cents || Infinity));
+          const badge = document.createElement('div');
+          badge.className = 'muted small';
+          badge.style.cssText = 'color:var(--accent);font-weight:600;margin-top:2px;';
+          badge.textContent = available.length + ' available from ' + cents(lowest);
+          el.querySelector('.vendor-item-info').appendChild(badge);
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', (e) => {
+            if (e.target.closest('[data-wl-remove]')) return;
+            // Open the cheapest listing
+            const cheapest = available.reduce((a, b) => (a.price_cents || 0) < (b.price_cents || 0) ? a : b);
+            openDetailPanel(cheapest.id);
+          });
+        }
+      } catch(e) {}
+    });
+
+    // Remove from wishlist
+    $$('[data-wl-remove]', gridDiv).forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cardId = btn.dataset.wlRemove;
+        state.wishlist = state.wishlist.filter(w => w.card_id !== cardId);
+        saveWishlist();
+        renderWishlistTab(root, eventId);
+      });
+    });
+  }
+
+  // ---------- CART OPTIMIZER (in saved tab) ----------
+  function renderCartOptimizer(savedItems) {
+    if (!savedItems || savedItems.length < 2) return '';
+    const byVendor = {};
+    savedItems.forEach(s => {
+      const vn = s.vendor_name || 'Unknown';
+      if (!byVendor[vn]) byVendor[vn] = { items: [], total: 0, vendor_id: s.vendor_id };
+      byVendor[vn].items.push(s);
+      byVendor[vn].total += (s.price_cents || 0);
+    });
+    const vendors = Object.entries(byVendor).sort((a, b) => b[1].items.length - a[1].items.length);
+    if (vendors.length < 2) return '';
+
+    const totalAll = savedItems.reduce((sum, s) => sum + (s.price_cents || 0), 0);
+    return `
+      <div class="card" style="margin-bottom:16px;border:1px solid rgba(46,196,122,0.3);">
+        <div style="font-weight:700;margin-bottom:8px;">Cart Optimizer</div>
+        <div class="muted small" style="margin-bottom:8px;">${savedItems.length} items across ${vendors.length} vendors &middot; Total: ${cents(totalAll)}</div>
+        ${vendors.map(([name, data]) => `
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid rgba(255,255,255,0.05);">
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;">${esc(name)}</div>
+              <div class="muted small">${data.items.length} item${data.items.length > 1 ? 's' : ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--accent);">${cents(data.total)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
   function tcgRarityBadge(rarity) {
     if (!rarity) return '';
     const r = rarity.toLowerCase();
@@ -1858,6 +2003,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     if (condParams.length) url += '&tcg_condition=' + encodeURIComponent(condParams.join(','));
     if (state.gradingCompany === 'ungraded') url += '&grading_company=ungraded';
     else if (state.gradingCompany && (!state.selectedGrades || !state.selectedGrades.length)) url += '&grading_company=' + encodeURIComponent(state.gradingCompany);
+    // New filters: set, language, variant, foil, card type
+    if (state.selectedSets && state.selectedSets.length) url += '&tcg_set_name=' + encodeURIComponent(state.selectedSets.join(','));
+    if (state.selectedLanguages && state.selectedLanguages.length) url += '&tcg_language=' + encodeURIComponent(state.selectedLanguages.join(','));
+    if (state.selectedVariants && state.selectedVariants.length) url += '&tcg_variant=' + encodeURIComponent(state.selectedVariants.join(','));
+    if (state.filterFoil === 'foil') url += '&tcg_is_foil=true';
+    else if (state.filterFoil === 'nonfoil') url += '&tcg_is_foil=false';
+    if (state.selectedCardTypes && state.selectedCardTypes.length) url += '&tcg_card_type=' + encodeURIComponent(state.selectedCardTypes.join(','));
 
     try {
       const result = await cachedApi('GET', url, 15000);
@@ -1882,14 +2034,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
       state.browseItems = list;
 
-      // Collect unique vendors for filter
+      // Collect unique vendors for filter (deduplicated by name)
       const vendorMap = {};
       list.forEach(i => {
         if (i.vendors && i.vendors.display_name) {
-          vendorMap[i.vendor_id] = i.vendors.display_name;
+          const name = i.vendors.display_name;
+          if (!vendorMap[name]) vendorMap[name] = i.vendor_id;
         }
       });
-      state.browseVendors = Object.entries(vendorMap).map(([id, name]) => ({ id, name }));
+      state.browseVendors = Object.entries(vendorMap).map(([name, id]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
 
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
       state.filterCategories = cats;
@@ -1912,6 +2065,23 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           return 8;
         };
         state.filterRarities = [...seen.values()].sort((a, b) => rpri(a) - rpri(b) || a.localeCompare(b));
+      }
+
+      // Collect sets for filter
+      if (!state.selectedSets || !state.selectedSets.length) {
+        state.filterSets = [...new Set(list.map(i => i.tcg_set_name).filter(Boolean))].sort();
+      }
+      // Collect languages
+      if (!state.selectedLanguages || !state.selectedLanguages.length) {
+        state.filterLanguages = [...new Set(list.map(i => i.tcg_language).filter(Boolean))].sort();
+      }
+      // Collect variants
+      if (!state.selectedVariants || !state.selectedVariants.length) {
+        state.filterVariants = [...new Set(list.map(i => i.tcg_variant).filter(Boolean))].sort();
+      }
+      // Collect card types from category
+      if (!state.selectedCardTypes || !state.selectedCardTypes.length) {
+        state.filterCardTypes = [...new Set(list.map(i => i.category).filter(Boolean))].sort();
       }
 
       const isTcg = list.some(i => i.tcg_game);
@@ -2008,6 +2178,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
                   <span class="tcg-vendor-price">${cents(item.price_cents)}</span>
                   ${item.tcg_market_price_cents ? '<span class="tcg-market-price">Mkt: ' + cents(item.tcg_market_price_cents) + '</span>' : ''}
                   ${tcgDealHtml(item.price_cents, item.tcg_market_price_cents)}
+                  ${(() => {
+                    if (!item.tcg_card_id) return '';
+                    const base = item.tcg_card_id.replace(/-graded$/, '');
+                    const sameCard = list.filter(i => i.tcg_card_id && i.tcg_card_id.replace(/-graded$/, '') === base && i.id !== item.id);
+                    if (sameCard.length < 1) return '';
+                    const allPrices = [item.price_cents, ...sameCard.map(i => i.price_cents)].filter(Boolean).sort((a,b) => a-b);
+                    const low = allPrices[0];
+                    return '<span class="muted" style="font-size:0.65rem;display:block;margin-top:2px;">Low: ' + cents(low) + ' (' + allPrices.length + ' sellers)</span>';
+                  })()}
                 </div>
                 <div class="tcg-vendor-label">${esc(vendorName)}${booth ? ' \u00b7 ' + esc(booth) : ''}</div>
               </div>
@@ -2227,6 +2406,48 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             </div>
           </div>
         ` : ''}
+        ${isTcg && (state.filterSets || []).length > 1 ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Set</div>
+            <div class="checkbox-group" id="set-checkboxes" style="max-height:150px;overflow-y:auto;">
+              ${(state.filterSets || []).map(s => `<div class="checkbox-pill ${(state.selectedSets||[]).includes(s) ? 'selected' : ''}" data-set="${esc(s)}">${esc(s)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${isTcg && (state.filterLanguages || []).length > 1 ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Language</div>
+            <div class="checkbox-group" id="lang-checkboxes">
+              ${(state.filterLanguages || []).map(l => `<div class="checkbox-pill ${(state.selectedLanguages||[]).includes(l) ? 'selected' : ''}" data-lang="${esc(l)}">${esc(l)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${isTcg && (state.filterVariants || []).length > 1 ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Variant / Printing</div>
+            <div class="checkbox-group" id="variant-checkboxes">
+              ${(state.filterVariants || []).map(v => `<div class="checkbox-pill ${(state.selectedVariants||[]).includes(v) ? 'selected' : ''}" data-variant="${esc(v)}">${esc(v)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${isTcg ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Foil</div>
+            <div class="checkbox-group" id="foil-pills">
+              <div class="checkbox-pill ${state.filterFoil === '' ? 'selected' : ''}" data-foil="">All</div>
+              <div class="checkbox-pill ${state.filterFoil === 'foil' ? 'selected' : ''}" data-foil="foil">Foil Only</div>
+              <div class="checkbox-pill ${state.filterFoil === 'nonfoil' ? 'selected' : ''}" data-foil="nonfoil">Non-Foil Only</div>
+            </div>
+          </div>
+        ` : ''}
+        ${isTcg && (state.filterCardTypes || []).length > 1 ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Card Type</div>
+            <div class="checkbox-group" id="cardtype-checkboxes">
+              ${(state.filterCardTypes || []).map(ct => `<div class="checkbox-pill ${(state.selectedCardTypes||[]).includes(ct) ? 'selected' : ''}" data-cardtype="${esc(ct)}">${esc(ct)}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
         ${cats.length ? `
           <div class="filter-section">
             <div class="filter-section-title">Category</div>
@@ -2257,6 +2478,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     let selectedConditions = [...(state.selectedConditions || [])];
     let selectedGC = state.gradingCompany || '';
     let selectedGrades = [...(state.selectedGrades || [])];
+    let selectedSets = [...(state.selectedSets || [])];
+    let selectedLanguages = [...(state.selectedLanguages || [])];
+    let selectedVariants = [...(state.selectedVariants || [])];
+    let selectedFoil = state.filterFoil || '';
+    let selectedCardTypes = [...(state.selectedCardTypes || [])];
 
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
@@ -2330,6 +2556,47 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       });
     });
 
+    // Set filter
+    $$('#set-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const s = pill.dataset.set;
+        if (selectedSets.includes(s)) { selectedSets = selectedSets.filter(x => x !== s); pill.classList.remove('selected'); }
+        else { selectedSets.push(s); pill.classList.add('selected'); }
+      });
+    });
+    // Language filter
+    $$('#lang-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const l = pill.dataset.lang;
+        if (selectedLanguages.includes(l)) { selectedLanguages = selectedLanguages.filter(x => x !== l); pill.classList.remove('selected'); }
+        else { selectedLanguages.push(l); pill.classList.add('selected'); }
+      });
+    });
+    // Variant filter
+    $$('#variant-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const v = pill.dataset.variant;
+        if (selectedVariants.includes(v)) { selectedVariants = selectedVariants.filter(x => x !== v); pill.classList.remove('selected'); }
+        else { selectedVariants.push(v); pill.classList.add('selected'); }
+      });
+    });
+    // Foil filter
+    $$('#foil-pills .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        $$('#foil-pills .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        selectedFoil = pill.dataset.foil;
+      });
+    });
+    // Card type filter
+    $$('#cardtype-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const ct = pill.dataset.cardtype;
+        if (selectedCardTypes.includes(ct)) { selectedCardTypes = selectedCardTypes.filter(x => x !== ct); pill.classList.remove('selected'); }
+        else { selectedCardTypes.push(ct); pill.classList.add('selected'); }
+      });
+    });
+
     $$('#sort-options .checkbox-pill', backdrop).forEach(pill => {
       pill.addEventListener('click', () => {
         $$('#sort-options .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
@@ -2345,6 +2612,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       selectedConditions = [];
       selectedGC = '';
       selectedGrades = [];
+      selectedSets = [];
+      selectedLanguages = [];
+      selectedVariants = [];
+      selectedFoil = '';
+      selectedCardTypes = [];
       $$('#cat-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       $$('#rarity-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       $$('#condition-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
@@ -2352,6 +2624,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       $$('#grade-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       const gradeSection = $('#grade-section', backdrop);
       if (gradeSection) gradeSection.style.display = 'none';
+      $$('#set-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#lang-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#variant-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#foil-pills .checkbox-pill', backdrop).forEach(p => p.classList.toggle('selected', p.dataset.foil === ''));
+      $$('#cardtype-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       $$('#sort-options .checkbox-pill', backdrop).forEach(p => {
         p.classList.toggle('selected', p.dataset.sort === 'newest');
       });
@@ -2366,6 +2643,11 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       state.selectedConditions = selectedConditions;
       state.gradingCompany = selectedGC;
       state.selectedGrades = selectedGrades;
+      state.selectedSets = selectedSets;
+      state.selectedLanguages = selectedLanguages;
+      state.selectedVariants = selectedVariants;
+      state.filterFoil = selectedFoil;
+      state.selectedCardTypes = selectedCardTypes;
       const vendorSelect = $('#vendor-filter-select', backdrop);
       state.filterVendorId = vendorSelect ? vendorSelect.value : '';
       state.apiCache = {};
@@ -2697,13 +2979,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <h2 style="margin-bottom:4px;">${esc(item.title || 'Unknown Card')}</h2>
             <div class="muted small">${item.tcg_set_name ? esc(item.tcg_set_name) : ''}${item.tcg_card_number ? ' &middot; #' + esc(item.tcg_card_number) : ''}</div>
           </div>
-          <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn" style="flex-shrink:0;">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="save-btn ${isSaved ? 'saved' : ''}" id="dp-save-btn">${isSaved ? '&#10084; Saved' : '&#9825; Save'}</button>
+            ${item.tcg_card_id ? '<button class="save-btn ' + (isCardWishlisted(item.tcg_card_id) ? 'saved' : '') + '" id="dp-wishlist-btn" style="background:rgba(255,193,7,0.15);border-color:rgba(255,193,7,0.4);' + (isCardWishlisted(item.tcg_card_id) ? 'color:#fbbf24;' : '') + '">' + (isCardWishlisted(item.tcg_card_id) ? '&#9733; Wanted' : '&#9734; Want') + '</button>' : ''}
+          </div>
         </div>
         <div style="margin-bottom:8px;">${tcgRarityBadge(item.tcg_rarity)} ${tcgCondBadge(item.tcg_condition)}</div>
         ${priceBarHtml}
         ${item.description ? '<div class="card"><p class="small">' + esc(item.description) + '</p></div>' : ''}
         <hr class="divider">
         ${vendorHtml}
+        <div id="dp-vendor-rating"></div>
         <div id="dp-other-sellers"></div>
       `;
     } else {
@@ -2742,6 +3028,67 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         updateSavedBadge();
         toast(nowSaved ? 'Added to saved items' : 'Removed from saved', 'success');
       });
+    }
+
+    // Wishlist button handler
+    const wlBtn = body.querySelector('#dp-wishlist-btn');
+    if (wlBtn && item.tcg_card_id) {
+      wlBtn.addEventListener('click', () => {
+        toggleWishlistCard(item);
+        const nowWl = isCardWishlisted(item.tcg_card_id);
+        wlBtn.className = 'save-btn ' + (nowWl ? 'saved' : '');
+        wlBtn.style.cssText = 'background:rgba(255,193,7,0.15);border-color:rgba(255,193,7,0.4);' + (nowWl ? 'color:#fbbf24;' : '');
+        wlBtn.innerHTML = nowWl ? '&#9733; Wanted' : '&#9734; Want';
+        toast(nowWl ? 'Added to wishlist' : 'Removed from wishlist', 'success');
+      });
+    }
+
+    // Vendor rating
+    const ratingDiv = body.querySelector('#dp-vendor-rating');
+    if (ratingDiv && item.vendor_id) {
+      const ratedKey = 'rated_' + item.vendor_id;
+      const alreadyRated = load(ratedKey);
+      ratingDiv.innerHTML = `
+        <div style="margin:12px 0;">
+          <div class="muted small" style="margin-bottom:6px;">Rate this vendor</div>
+          <div id="rating-stars" style="display:flex;gap:4px;font-size:1.5rem;cursor:pointer;">
+            ${[1,2,3,4,5].map(n => '<span data-star="' + n + '" style="color:' + (alreadyRated && alreadyRated >= n ? '#fbbf24' : 'var(--muted)') + ';">&#9733;</span>').join('')}
+          </div>
+          ${alreadyRated ? '<div class="muted small" style="margin-top:4px;">You rated ' + alreadyRated + '/5</div>' : ''}
+        </div>
+      `;
+      if (!alreadyRated) {
+        $$('#rating-stars span', ratingDiv).forEach(star => {
+          star.addEventListener('click', async () => {
+            const rating = parseInt(star.dataset.star);
+            try {
+              const result = await api('PUT', '/api/vendors/' + item.vendor_id + '/rate', { rating });
+              save(ratedKey, rating);
+              $$('#rating-stars span', ratingDiv).forEach(s => {
+                s.style.color = parseInt(s.dataset.star) <= rating ? '#fbbf24' : 'var(--muted)';
+              });
+              const info = document.createElement('div');
+              info.className = 'muted small';
+              info.style.marginTop = '4px';
+              info.textContent = 'Rated! Average: ' + (result.average || rating) + '/5 (' + (result.count || 1) + ' ratings)';
+              ratingDiv.appendChild(info);
+              toast('Thanks for rating!', 'success');
+            } catch(e) {
+              toast('Rating failed', 'error');
+            }
+          });
+          star.addEventListener('mouseenter', () => {
+            const n = parseInt(star.dataset.star);
+            $$('#rating-stars span', ratingDiv).forEach(s => {
+              s.style.color = parseInt(s.dataset.star) <= n ? '#fbbf24' : 'var(--muted)';
+            });
+          });
+        });
+        const starsDiv = ratingDiv.querySelector('#rating-stars');
+        if (starsDiv) starsDiv.addEventListener('mouseleave', () => {
+          $$('#rating-stars span', ratingDiv).forEach(s => { s.style.color = 'var(--muted)'; });
+        });
+      }
     }
 
     // Vendor tap to filter
@@ -3233,6 +3580,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
                 <span class="price-prefix">$</span>
                 <input type="number" id="edit-price" step="0.01" min="0" value="${item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ''}">
               </div>
+              ${item.tcg_market_price_cents ? '<div class="muted small" style="margin-top:4px;">Market: ' + cents(item.tcg_market_price_cents) + ' <a href="#" id="use-market-price" style="color:var(--accent);text-decoration:underline;">Use market price</a></div>' : ''}
             </div>
           </div>
         </div>
@@ -3277,6 +3625,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       toggleBtn.addEventListener('click', () => {
         toggleBtn.classList.toggle('open');
         toggleContent.classList.toggle('open');
+      });
+    }
+
+    // Auto-pricing: use market price link
+    const useMarketLink = $('#use-market-price', contentDiv);
+    if (useMarketLink && item.tcg_market_price_cents) {
+      useMarketLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const priceInput = $('#edit-price', contentDiv);
+        if (priceInput) priceInput.value = (item.tcg_market_price_cents / 100).toFixed(2);
+        toast('Price set to market value', 'success');
       });
     }
 
@@ -3579,6 +3938,26 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <button class="btn btn-secondary" id="add-more-btn">&#128247; Add More Photos</button>
           <input type="file" id="add-more-input" accept="image/*" multiple style="display:none;">
           <div class="spacer"></div>
+          ${listedCount > 0 ? `
+            <div class="card" style="margin-bottom:12px;">
+              <div style="font-weight:700;margin-bottom:8px;">Bulk Repricing</div>
+              <div class="muted small" style="margin-bottom:8px;">Apply a discount to all ${listedCount} listed items</div>
+              <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="number" id="discount-pct" placeholder="% off" min="1" max="99" style="flex:1;">
+                <button class="btn btn-outline btn-small" id="apply-discount-btn">Apply %</button>
+              </div>
+              <button class="btn btn-secondary btn-small" id="restore-prices-btn" style="width:100%;">Restore Original Prices</button>
+            </div>
+          ` : ''}
+          <div class="card" style="margin-bottom:12px;">
+            <div style="font-weight:700;margin-bottom:8px;">Staff Access</div>
+            <div class="muted small" style="margin-bottom:8px;">Generate tokens so staff can help manage items</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <input type="text" id="staff-name" placeholder="Staff name" style="flex:1;">
+              <button class="btn btn-outline btn-small" id="add-staff-btn">Add</button>
+            </div>
+            <div id="staff-list"></div>
+          </div>
           ${!isLive ? '<button class="go-live-btn" id="golive-btn">Go Live -- $' + feeDisplay + '</button>' : ''}
         `;
 
@@ -3618,6 +3997,86 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           toast(completed + ' item' + (completed !== 1 ? 's' : '') + ' added!' + (failed ? ' (' + failed + ' failed)' : ''), 'success');
           loadVendorDashboardData(root);
         });
+
+        // Bulk repricing
+        const discountBtn = $('#apply-discount-btn', actionsDiv);
+        if (discountBtn) {
+          discountBtn.addEventListener('click', async () => {
+            const pct = parseInt($('#discount-pct', actionsDiv).value);
+            if (!pct || pct < 1 || pct > 99) { toast('Enter a valid percentage (1-99)', 'error'); return; }
+            discountBtn.disabled = true; discountBtn.textContent = 'Applying...';
+            try {
+              const result = await api('PUT', '/api/vendors/' + vendor.id + '/bulk-reprice', {
+                session_token: getToken(), discount_percent: pct
+              });
+              toast(result.updated + ' items discounted ' + pct + '%', 'success');
+              loadVendorDashboardData(root);
+            } catch(e) { toast(e.message, 'error'); }
+            discountBtn.disabled = false; discountBtn.textContent = 'Apply %';
+          });
+        }
+        const restoreBtn = $('#restore-prices-btn', actionsDiv);
+        if (restoreBtn) {
+          restoreBtn.addEventListener('click', async () => {
+            restoreBtn.disabled = true; restoreBtn.textContent = 'Restoring...';
+            try {
+              const result = await api('PUT', '/api/vendors/' + vendor.id + '/bulk-reprice', {
+                session_token: getToken(), restore: true
+              });
+              toast(result.updated + ' prices restored', 'success');
+              loadVendorDashboardData(root);
+            } catch(e) { toast(e.message, 'error'); }
+            restoreBtn.disabled = false; restoreBtn.textContent = 'Restore Original Prices';
+          });
+        }
+
+        // Staff management
+        const addStaffBtn = $('#add-staff-btn', actionsDiv);
+        if (addStaffBtn) {
+          const renderStaffList = () => {
+            const listEl = $('#staff-list', actionsDiv);
+            if (!listEl) return;
+            const tokens = vendor.staff_tokens || [];
+            if (!tokens.length) { listEl.innerHTML = '<div class="muted small">No staff tokens yet</div>'; return; }
+            listEl.innerHTML = tokens.map(t => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">${esc(t.name || 'Staff')}</div>
+                  <div class="muted small" style="font-family:monospace;">${esc(t.token.slice(0, 8))}...</div>
+                </div>
+                <button class="btn btn-danger btn-small" data-revoke-token="${esc(t.token)}" style="padding:4px 10px;font-size:0.75rem;">Revoke</button>
+              </div>
+            `).join('');
+            $$('[data-revoke-token]', listEl).forEach(btn => {
+              btn.addEventListener('click', async () => {
+                try {
+                  await api('DELETE', '/api/vendors/' + vendor.id + '/staff/' + btn.dataset.revokeToken + '?session=' + encodeURIComponent(getToken()));
+                  vendor.staff_tokens = (vendor.staff_tokens || []).filter(t => t.token !== btn.dataset.revokeToken);
+                  renderStaffList();
+                  toast('Token revoked', 'success');
+                } catch(e) { toast(e.message, 'error'); }
+              });
+            });
+          };
+          renderStaffList();
+
+          addStaffBtn.addEventListener('click', async () => {
+            const name = ($('#staff-name', actionsDiv) || {}).value || 'Staff';
+            addStaffBtn.disabled = true;
+            try {
+              const result = await api('POST', '/api/vendors/' + vendor.id + '/staff', {
+                session_token: getToken(), name
+              });
+              toast('Staff token: ' + result.staff_token, 'success');
+              // Add to local state
+              if (!vendor.staff_tokens) vendor.staff_tokens = [];
+              vendor.staff_tokens.push({ token: result.staff_token, name, created_at: new Date().toISOString() });
+              renderStaffList();
+              if ($('#staff-name', actionsDiv)) $('#staff-name', actionsDiv).value = '';
+            } catch(e) { toast(e.message, 'error'); }
+            addStaffBtn.disabled = false;
+          });
+        }
 
         const liveBtn = $('#golive-btn', actionsDiv);
         if (liveBtn) {
@@ -3757,8 +4216,30 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
     loadSession();
     loadSavedItems();
+    loadWishlist();
 
     if (checkStripeReturn()) return;
+
+    // Check for kiosk mode
+    const kioskParams = new URLSearchParams(window.location.search);
+    if (kioskParams.get('kiosk') === 'true') {
+      const kioskEvent = kioskParams.get('event');
+      if (kioskEvent) {
+        save('event_id', kioskEvent);
+        document.body.style.overflow = 'auto';
+        // Hide vendor/create links, auto-redirect to browse
+        window.location.hash = '#browse/' + kioskEvent + '/shop';
+        // Periodically refresh in kiosk mode
+        setInterval(() => {
+          if (window.location.hash.startsWith('#browse/')) {
+            state.apiCache = {};
+            render();
+          }
+        }, 120000); // Refresh every 2 min
+        render();
+        return;
+      }
+    }
 
     // Check for ?tab=menu param to set initial tab
     const params = new URLSearchParams(window.location.search);

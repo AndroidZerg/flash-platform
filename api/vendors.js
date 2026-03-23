@@ -212,4 +212,125 @@ router.post('/vendors/:id/logo', upload.single('logo'), async (req, res) => {
   }
 });
 
+// PUT /api/vendors/:id/rate — Rate a vendor
+router.put('/vendors/:id/rate', async (req, res) => {
+  try {
+    const { rating } = req.body;
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
+
+    const { data: vendor } = await supabase.from('vendors')
+      .select('rating_sum, rating_count')
+      .eq('id', req.params.id)
+      .single();
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+    const { data, error } = await supabase.from('vendors')
+      .update({
+        rating_sum: (vendor.rating_sum || 0) + rating,
+        rating_count: (vendor.rating_count || 0) + 1,
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ average: data.rating_count ? (data.rating_sum / data.rating_count).toFixed(1) : 0, count: data.rating_count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/vendors/:id/bulk-reprice — Apply discount to all listed items
+router.put('/vendors/:id/bulk-reprice', async (req, res) => {
+  try {
+    const session = req.body.session_token;
+    const { data: vendor } = await supabase.from('vendors')
+      .select('session_token')
+      .eq('id', req.params.id)
+      .single();
+    if (!vendor || vendor.session_token !== session) return res.status(403).json({ error: 'Unauthorized' });
+
+    const { discount_percent, discount_cents, restore } = req.body;
+
+    // Get all listed items for this vendor
+    const { data: items } = await supabase.from('items')
+      .select('id, price_cents, original_price_cents')
+      .eq('vendor_id', req.params.id)
+      .eq('status', 'listed');
+    if (!items || !items.length) return res.json({ updated: 0 });
+
+    let updated = 0;
+    for (const item of items) {
+      let updates = {};
+      if (restore) {
+        if (item.original_price_cents) {
+          updates = { price_cents: item.original_price_cents, original_price_cents: null };
+        } else continue;
+      } else {
+        const orig = item.original_price_cents || item.price_cents;
+        updates.original_price_cents = orig;
+        if (discount_percent) {
+          updates.price_cents = Math.round(orig * (1 - discount_percent / 100));
+        } else if (discount_cents) {
+          updates.price_cents = Math.max(0, orig - discount_cents);
+        } else continue;
+      }
+      const { error } = await supabase.from('items').update(updates).eq('id', item.id);
+      if (!error) updated++;
+    }
+
+    res.json({ updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/staff — Generate staff token
+router.post('/vendors/:id/staff', async (req, res) => {
+  try {
+    const session = req.body.session_token;
+    const { data: vendor } = await supabase.from('vendors')
+      .select('session_token, staff_tokens')
+      .eq('id', req.params.id)
+      .single();
+    if (!vendor || vendor.session_token !== session) return res.status(403).json({ error: 'Unauthorized' });
+
+    const crypto = require('crypto');
+    const staffToken = crypto.randomBytes(16).toString('hex');
+    const tokens = Array.isArray(vendor.staff_tokens) ? vendor.staff_tokens : [];
+    tokens.push({ token: staffToken, created_at: new Date().toISOString(), name: req.body.name || 'Staff' });
+
+    const { error } = await supabase.from('vendors')
+      .update({ staff_tokens: tokens })
+      .eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.json({ staff_token: staffToken, total: tokens.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/vendors/:id/staff/:token — Revoke staff token
+router.delete('/vendors/:id/staff/:token', async (req, res) => {
+  try {
+    const session = req.body.session_token || req.query.session;
+    const { data: vendor } = await supabase.from('vendors')
+      .select('session_token, staff_tokens')
+      .eq('id', req.params.id)
+      .single();
+    if (!vendor || vendor.session_token !== session) return res.status(403).json({ error: 'Unauthorized' });
+
+    const tokens = (vendor.staff_tokens || []).filter(t => t.token !== req.params.token);
+    const { error } = await supabase.from('vendors')
+      .update({ staff_tokens: tokens })
+      .eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.json({ success: true, remaining: tokens.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
