@@ -83,7 +83,7 @@ router.post('/items', upload.single('photo'), async (req, res) => {
 router.get('/items', async (req, res) => {
   try {
     const { event_id, status, q, category, min_price, max_price, sort, vendor_id, type,
-            tcg_game, tcg_rarity, tcg_condition, below_market } = req.query;
+            tcg_game, tcg_rarity, tcg_condition, below_market, grading_company } = req.query;
 
     let query = supabase.from('items').select('*, vendors(display_name, booth_location, logo_url)');
 
@@ -103,8 +103,15 @@ router.get('/items', async (req, res) => {
       if (rarities.length === 1) query = query.eq('tcg_rarity', rarities[0]);
       else if (rarities.length > 1) query = query.in('tcg_rarity', rarities);
     }
-    if (tcg_condition) query = query.eq('tcg_condition', tcg_condition);
-    // below_market filtering done in post-processing below
+    if (tcg_condition) {
+      const conditions = tcg_condition.split(',').map(c => c.trim()).filter(Boolean);
+      if (conditions.length === 1) query = query.eq('tcg_condition', conditions[0]);
+      else if (conditions.length > 1) query = query.in('tcg_condition', conditions);
+    }
+    if (grading_company && grading_company !== 'ungraded') {
+      query = query.ilike('tcg_condition', grading_company + '%');
+    }
+    // below_market + ungraded filtering done in post-processing below
     // Exclude items without any image (photo or TCG image)
     query = query.or('photo_url.neq.,tcg_image_url.neq.');
 
@@ -118,6 +125,9 @@ router.get('/items', async (req, res) => {
     // Below market filter: compare price_cents < tcg_market_price_cents
     if (below_market === 'true' && data) {
       data = data.filter(i => i.tcg_market_price_cents && i.price_cents < i.tcg_market_price_cents);
+    }
+    if (grading_company === 'ungraded' && data) {
+      data = data.filter(i => !i.tcg_condition || !/^(PSA|CGC|BGS)\s/i.test(i.tcg_condition));
     }
     res.json(data || []);
   } catch (err) {

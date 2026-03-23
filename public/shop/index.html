@@ -277,7 +277,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   display: flex;
   background: var(--card);
   border-radius: var(--radius-btn);
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 16px;
   border: 1px solid rgba(255,255,255,0.1);
 }
@@ -1024,13 +1024,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 /* --- Saved Items Badge --- */
 .saved-badge {
-  position: absolute; top: -4px; right: -4px;
-  background: var(--red); color: #fff; font-size: 0.65rem;
-  font-weight: 700; min-width: 16px; height: 16px;
-  border-radius: 8px; display: flex; align-items: center;
-  justify-content: center; padding: 0 4px;
+  position: absolute; top: -8px; right: -8px;
+  background: var(--red); color: #fff; font-size: 0.7rem;
+  font-weight: 700; min-width: 22px; height: 22px;
+  border-radius: 11px; display: flex; align-items: center;
+  justify-content: center; padding: 2px 6px; box-sizing: border-box;
+  line-height: 1; z-index: 2;
 }
-.saved-tab-btn { position: relative; }
+.saved-tab-btn { position: relative; overflow: visible; }
 
 /* --- Compare View --- */
 .compare-panel {
@@ -1114,6 +1115,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     savedItems: [],
     selectedRarities: [],
     filterRarities: [],
+    selectedConditions: [],
+    gradingCompany: '',
+    selectedGrades: [],
+    _tcgDefaultsApplied: false,
     browseOffset: 0,
     browseHasMore: true,
     apiCache: {},
@@ -1697,6 +1702,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.filterSort = 'newest';
     state.filterVendorId = '';
     state.selectedRarities = [];
+    state.selectedConditions = [];
+    state.gradingCompany = '';
+    state.selectedGrades = [];
+    state._tcgDefaultsApplied = false;
     doSearch();
   }
 
@@ -1840,6 +1849,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     if (state.tcgBelowMarket) url += '&below_market=true';
     if (state.filterVendorId) url += '&vendor_id=' + encodeURIComponent(state.filterVendorId);
     if (state.selectedRarities && state.selectedRarities.length) url += '&tcg_rarity=' + encodeURIComponent(state.selectedRarities.join(','));
+    // Condition filter (NM, LP, etc.) + grading company grades
+    const condParams = [];
+    if (state.selectedConditions && state.selectedConditions.length) condParams.push(...state.selectedConditions);
+    if (state.gradingCompany && state.gradingCompany !== 'ungraded' && state.selectedGrades && state.selectedGrades.length) {
+      state.selectedGrades.forEach(g => condParams.push(state.gradingCompany + ' ' + g));
+    }
+    if (condParams.length) url += '&tcg_condition=' + encodeURIComponent(condParams.join(','));
+    if (state.gradingCompany === 'ungraded') url += '&grading_company=ungraded';
+    else if (state.gradingCompany && (!state.selectedGrades || !state.selectedGrades.length)) url += '&grading_company=' + encodeURIComponent(state.gradingCompany);
 
     try {
       const result = await cachedApi('GET', url, 15000);
@@ -1850,7 +1868,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       }
 
       if (sort === 'popular') {
-        list.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+        list.sort((a, b) => (b.save_count || 0) - (a.save_count || 0) || (b.view_count || 0) - (a.view_count || 0));
       }
       if (sort === 'best_deal') {
         list.sort((a, b) => {
@@ -1876,13 +1894,40 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       const cats = [...new Set(list.map(i => i.category).filter(Boolean))];
       state.filterCategories = cats;
 
-      // Collect rarities for filter (only update when not filtering by rarity)
+      // Collect rarities for filter — deduplicated + priority sorted
       if (!state.selectedRarities || !state.selectedRarities.length) {
-        state.filterRarities = [...new Set(list.map(i => i.tcg_rarity).filter(Boolean))];
+        const rawR = list.map(i => i.tcg_rarity).filter(Boolean);
+        const seen = new Map();
+        rawR.forEach(r => { const k = r.trim().toLowerCase(); if (!seen.has(k)) seen.set(k, r.trim()); });
+        const rpri = (r) => {
+          const l = r.toLowerCase();
+          if (/secret|illustration|starlight|hyper|ghost/.test(l)) return 0;
+          if (/ultra|collector/.test(l)) return 1;
+          if (/holo|rainbow|prismatic/.test(l)) return 2;
+          if (/rare|super|mosaic/.test(l)) return 3;
+          if (/uncommon/.test(l)) return 4;
+          if (/common/.test(l)) return 5;
+          if (/promo/.test(l)) return 6;
+          if (/sealed/.test(l)) return 7;
+          return 8;
+        };
+        state.filterRarities = [...seen.values()].sort((a, b) => rpri(a) - rpri(b) || a.localeCompare(b));
       }
 
       const isTcg = list.some(i => i.tcg_game);
       state.isTcgEvent = isTcg;
+
+      // Auto-apply Pokémon + Popular defaults for TCG events on first load
+      if (isTcg && !state._tcgDefaultsApplied && !state.tcgGame) {
+        state._tcgDefaultsApplied = true;
+        const hasPokemon = list.some(i => i.tcg_game === 'pokemon');
+        if (hasPokemon) {
+          state.tcgGame = 'pokemon';
+          state.filterSort = 'popular';
+          state.apiCache = {};
+          return loadBrowseItems(root, eventId, tab, query, categories, 'popular');
+        }
+      }
 
       // Render vendor filter chip
       const vfArea = $('#vendor-filter-area', root);
@@ -2149,6 +2194,39 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             </div>
           </div>
         ` : ''}
+        ${isTcg ? `
+          <div class="filter-section">
+            <div class="filter-section-title">Condition</div>
+            <div class="checkbox-group" id="condition-checkboxes">
+              <div class="checkbox-pill ${state.selectedConditions.includes('NM') ? 'selected' : ''}" data-cond="NM" style="border-left:3px solid #4caf50;">NM</div>
+              <div class="checkbox-pill ${state.selectedConditions.includes('LP') ? 'selected' : ''}" data-cond="LP" style="border-left:3px solid #2196f3;">LP</div>
+              <div class="checkbox-pill ${state.selectedConditions.includes('MP') ? 'selected' : ''}" data-cond="MP" style="border-left:3px solid #ffc107;">MP</div>
+              <div class="checkbox-pill ${state.selectedConditions.includes('HP') ? 'selected' : ''}" data-cond="HP" style="border-left:3px solid #ff9800;">HP</div>
+              <div class="checkbox-pill ${state.selectedConditions.includes('DMG') ? 'selected' : ''}" data-cond="DMG" style="border-left:3px solid #f44336;">DMG</div>
+            </div>
+          </div>
+          <div class="filter-section">
+            <div class="filter-section-title">Grading Company</div>
+            <div class="checkbox-group" id="grading-company-pills">
+              <div class="checkbox-pill ${state.gradingCompany === '' ? 'selected' : ''}" data-gc="">All</div>
+              <div class="checkbox-pill ${state.gradingCompany === 'PSA' ? 'selected' : ''}" data-gc="PSA">PSA</div>
+              <div class="checkbox-pill ${state.gradingCompany === 'CGC' ? 'selected' : ''}" data-gc="CGC">CGC</div>
+              <div class="checkbox-pill ${state.gradingCompany === 'BGS' ? 'selected' : ''}" data-gc="BGS">BGS</div>
+              <div class="checkbox-pill ${state.gradingCompany === 'ungraded' ? 'selected' : ''}" data-gc="ungraded">Ungraded</div>
+            </div>
+          </div>
+          <div class="filter-section" id="grade-section" style="${state.gradingCompany && state.gradingCompany !== 'ungraded' ? '' : 'display:none;'}">
+            <div class="filter-section-title">Grade</div>
+            <div class="checkbox-group" id="grade-checkboxes">
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('10') ? 'selected' : ''}" data-grade="10">10</div>
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('9.5') ? 'selected' : ''}" data-grade="9.5">9.5</div>
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('9') ? 'selected' : ''}" data-grade="9">9</div>
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('8.5') ? 'selected' : ''}" data-grade="8.5">8.5</div>
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('8') ? 'selected' : ''}" data-grade="8">8</div>
+              <div class="checkbox-pill ${(state.selectedGrades||[]).includes('7-') ? 'selected' : ''}" data-grade="7-">7-</div>
+            </div>
+          </div>
+        ` : ''}
         ${cats.length ? `
           <div class="filter-section">
             <div class="filter-section-title">Category</div>
@@ -2176,6 +2254,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     let selectedCats = [...state.selectedCategories];
     let selectedSort = state.filterSort;
     let selectedRarities = [...(state.selectedRarities || [])];
+    let selectedConditions = [...(state.selectedConditions || [])];
+    let selectedGC = state.gradingCompany || '';
+    let selectedGrades = [...(state.selectedGrades || [])];
 
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
@@ -2209,6 +2290,46 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       });
     });
 
+    $$('#condition-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const c = pill.dataset.cond;
+        if (selectedConditions.includes(c)) {
+          selectedConditions = selectedConditions.filter(x => x !== c);
+          pill.classList.remove('selected');
+        } else {
+          selectedConditions.push(c);
+          pill.classList.add('selected');
+        }
+      });
+    });
+
+    $$('#grading-company-pills .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        $$('#grading-company-pills .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        selectedGC = pill.dataset.gc;
+        const gradeSection = $('#grade-section', backdrop);
+        if (gradeSection) gradeSection.style.display = selectedGC && selectedGC !== 'ungraded' ? '' : 'none';
+        if (!selectedGC || selectedGC === 'ungraded') {
+          selectedGrades = [];
+          $$('#grade-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+        }
+      });
+    });
+
+    $$('#grade-checkboxes .checkbox-pill', backdrop).forEach(pill => {
+      pill.addEventListener('click', () => {
+        const g = pill.dataset.grade;
+        if (selectedGrades.includes(g)) {
+          selectedGrades = selectedGrades.filter(x => x !== g);
+          pill.classList.remove('selected');
+        } else {
+          selectedGrades.push(g);
+          pill.classList.add('selected');
+        }
+      });
+    });
+
     $$('#sort-options .checkbox-pill', backdrop).forEach(pill => {
       pill.addEventListener('click', () => {
         $$('#sort-options .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
@@ -2221,8 +2342,16 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       selectedCats = [];
       selectedSort = 'newest';
       selectedRarities = [];
+      selectedConditions = [];
+      selectedGC = '';
+      selectedGrades = [];
       $$('#cat-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
       $$('#rarity-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#condition-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      $$('#grading-company-pills .checkbox-pill', backdrop).forEach(p => p.classList.toggle('selected', p.dataset.gc === ''));
+      $$('#grade-checkboxes .checkbox-pill', backdrop).forEach(p => p.classList.remove('selected'));
+      const gradeSection = $('#grade-section', backdrop);
+      if (gradeSection) gradeSection.style.display = 'none';
       $$('#sort-options .checkbox-pill', backdrop).forEach(p => {
         p.classList.toggle('selected', p.dataset.sort === 'newest');
       });
@@ -2234,6 +2363,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       state.selectedCategories = selectedCats;
       state.filterSort = selectedSort;
       state.selectedRarities = selectedRarities;
+      state.selectedConditions = selectedConditions;
+      state.gradingCompany = selectedGC;
+      state.selectedGrades = selectedGrades;
       const vendorSelect = $('#vendor-filter-select', backdrop);
       state.filterVendorId = vendorSelect ? vendorSelect.value : '';
       state.apiCache = {};
