@@ -1127,7 +1127,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     filterFoil: '',
     selectedCardTypes: [],
     filterCardTypes: [],
-    _tcgDefaultsApplied: false,
     browseOffset: 0,
     browseHasMore: true,
     apiCache: {},
@@ -1723,7 +1722,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     state.selectedVariants = [];
     state.filterFoil = '';
     state.selectedCardTypes = [];
-    state._tcgDefaultsApplied = false;
     doSearch();
   }
 
@@ -1993,18 +1991,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       const isTcg = list.some(i => i.tcg_game);
       state.isTcgEvent = isTcg;
 
-      // Auto-apply Pokémon + Popular defaults for TCG events on first load
-      if (isTcg && !state._tcgDefaultsApplied && !state.tcgGame) {
-        state._tcgDefaultsApplied = true;
-        const hasPokemon = list.some(i => i.tcg_game === 'pokemon');
-        if (hasPokemon) {
-          state.tcgGame = 'pokemon';
-          state.filterSort = 'popular';
-          state.apiCache = {};
-          return loadBrowseItems(root, eventId, tab, query, categories, 'popular');
-        }
-      }
-
       // Render vendor filter chip
       const vfArea = $('#vendor-filter-area', root);
       if (vfArea && state.filterVendorId) {
@@ -2024,12 +2010,26 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       const tcgArea = $('#tcg-tabs-area', root);
       if (tcgArea && isTcg && tab === 'shop') {
         const games = [...new Set(list.map(i => i.tcg_game).filter(Boolean))];
+        const gameLabels = {
+          pokemon: 'Pok\u00e9mon', magic: 'Magic', yugioh: 'Yu-Gi-Oh!',
+          onepiece: 'One Piece', lorcana: 'Lorcana', digimon: 'Digimon',
+          starwars: 'Star Wars', fab: 'Flesh & Blood'
+        };
+        const gameColors = {
+          pokemon: '#FFCB05', magic: '#A855F7', yugioh: '#EF4444',
+          onepiece: '#3B82F6', lorcana: '#6366F1', digimon: '#F97316',
+          starwars: '#FBBF24', fab: '#DC2626'
+        };
+        const gameOrder = ['pokemon','magic','yugioh','onepiece','lorcana','digimon','starwars','fab'];
+        const sortedGames = gameOrder.filter(g => games.includes(g));
         tcgArea.innerHTML = `
-          <div class="tcg-game-tabs">
-            <div class="tcg-game-tab ${!state.tcgGame ? 'active' : ''}" data-game="">All</div>
-            ${games.includes('pokemon') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'pokemon' ? 'active' : '') + '" data-game="pokemon">Pok\u00e9mon</div>' : ''}
-            ${games.includes('magic') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'magic' ? 'active' : '') + '" data-game="magic">Magic</div>' : ''}
-            ${games.includes('yugioh') ? '<div class="tcg-game-tab ' + (state.tcgGame === 'yugioh' ? 'active' : '') + '" data-game="yugioh">Yu-Gi-Oh!</div>' : ''}
+          <div class="tcg-game-tabs" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;">
+            <div class="tcg-game-tab ${!state.tcgGame ? 'active' : ''}" data-game="" style="flex-shrink:0;">All</div>
+            ${sortedGames.map(g => {
+              const isActive = state.tcgGame === g;
+              const color = gameColors[g] || 'var(--accent)';
+              return '<div class="tcg-game-tab' + (isActive ? ' active' : '') + '" data-game="' + g + '" style="flex-shrink:0;' + (isActive ? 'background:' + color + ';color:#000;border-color:' + color + ';' : 'border-color:' + color + ';color:' + color + ';') + '">' + (gameLabels[g] || g) + '</div>';
+            }).join('')}
           </div>
           <label class="tcg-below-toggle">
             <input type="checkbox" id="below-market-toggle" ${state.tcgBelowMarket ? 'checked' : ''}>
